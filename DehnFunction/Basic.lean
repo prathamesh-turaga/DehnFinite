@@ -1,4 +1,6 @@
 import Mathlib.GroupTheory.PresentedGroup
+import Mathlib.Data.Nat.Find
+import Mathlib.Data.Nat.Lattice
 
 #check Group.conjugatesOfSet
 
@@ -47,5 +49,6 @@ example : IsProductOfNConjugates R 1 w := by
 
 end MyGen
 
+
 noncomputable def wordArea {G: Type*}(R : Set (FreeGroup G)) (w : FreeGroup G) : ℕ :=
-  sorry
+  sInf {n | n > 0 ∧ IsProductOfNConjugates R n w}
