@@ -1,6 +1,8 @@
 import Mathlib.GroupTheory.PresentedGroup
 import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
+import Mathlib.GroupTheory.FreeGroup.Reduce
+
 
 #check Group.conjugatesOfSet
 
@@ -30,7 +32,7 @@ def R : Set (FreeGroup MyGen) := {a' * b' * a'⁻¹ * b'⁻¹}
 
 def w : FreeGroup MyGen := a' * b' * a'⁻¹ * b'⁻¹
 
-example : IsProductOfNConjugates R 1 w := by
+lemma dumb : IsProductOfNConjugates R 1 w := by
   have h_w_conj : w ∈ Group.conjugatesOfSet R := by
     unfold Group.conjugatesOfSet
     unfold conjugatesOf
@@ -51,4 +53,56 @@ end MyGen
 
 
 noncomputable def wordArea {G: Type*}(R : Set (FreeGroup G)) (w : FreeGroup G) : ℕ :=
-  sInf {n | n > 0 ∧ IsProductOfNConjugates R n w}
+  sInf {n | IsProductOfNConjugates R n w}
+
+
+namespace MyGen
+
+#check le_sInf
+
+example : wordArea R w = 1 := by
+  apply Nat.le_antisymm
+  . apply Nat.sInf_le
+    have h_prod : IsProductOfNConjugates R 1 w := dumb
+    simp [h_prod]
+  . unfold wordArea
+    refine Nat.one_le_iff_ne_zero.mpr ?_
+    rintro h_area_0
+    have h_inf_0 := Nat.sInf_eq_zero.mp h_area_0
+    have h_nonempty : {n | IsProductOfNConjugates R n w}.Nonempty := by
+      use 1
+      exact dumb
+    have h_0_in : 0 ∈ {n | IsProductOfNConjugates R n w} := by
+      aesop
+
+    have h_w_is_1 : w=1 :=by
+      rcases h_0_in with ⟨l, h_len, h_prod⟩
+      have h_l_empty : l = [] := by
+        exact List.eq_nil_iff_length_eq_zero.mpr h_len
+      rw [h_l_empty] at h_prod
+      simp at h_prod
+      exact h_prod
+    have h_w_ne_1 : w ≠ 1 := by
+      rw [w]
+      intro h_eq_1
+      have h_norm_is_zero: FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) = 0 := by
+        rw [h_eq_1]
+        simp
+      have h_norm_nonzero : FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) ≠ 0 := by
+        native_decide
+      rw[ h_norm_is_zero] at h_norm_nonzero
+      contradiction
+    contradiction
+
+end MyGen
+
+
+structure wordArea₂ {G: Type*} (R : Set (FreeGroup G)) (w : FreeGroup G) where
+  n : ℕ
+  isProd : IsProductOfNConjugates R n w
+  isMin : ∀ m, m < n → ¬ IsProductOfNConjugates R m w
+
+namespace MyGen
+
+
+end MyGen
