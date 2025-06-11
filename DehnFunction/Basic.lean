@@ -51,6 +51,9 @@ lemma dumb : IsProductOfNConjugates R 1 w := by
 
 end MyGen
 
+--# Area Defintion 1
+
+#check sInf {}
 
 noncomputable def wordArea {G: Type*}(R : Set (FreeGroup G)) (w : FreeGroup G) : ℕ :=
   sInf {n | IsProductOfNConjugates R n w}
@@ -104,5 +107,41 @@ structure wordArea₂ {G: Type*} (R : Set (FreeGroup G)) (w : FreeGroup G) where
 
 namespace MyGen
 
+example: wordArea₂ R w := {
+  n := 1,
+  isProd := dumb,
+  isMin := by
+    intros m h_gt0 h_lt
+    have h_m_0 : m = 0 := by
+      apply Nat.eq_zero_of_le_zero
+      exact Nat.le_of_lt_succ h_gt0
+    rw [h_m_0] at h_lt
+    have h_w_is_1 : w = 1 := by
+      unfold IsProductOfNConjugates at h_lt
+      rcases h_lt with ⟨l, h_len, h_prod⟩
+      have h_l_empty : l = [] := by
+        exact List.eq_nil_iff_length_eq_zero.mpr h_len
+      rw [h_l_empty] at h_prod
+      simp at h_prod
+      exact h_prod
+    have h_w_ne_1 : w ≠ 1 := by
+      rw [w]
+      intro h_eq_1
+      have h_norm_is_zero: FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) = 0 := by
+        rw [h_eq_1]
+        simp
+      have h_norm_nonzero : FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) ≠ 0 := by
+        native_decide
+      rw[ h_norm_is_zero] at h_norm_nonzero
+      contradiction
+    contradiction
+
+}
 
 end MyGen
+
+
+--# Dehn Functions
+
+noncomputable def dehnFunction {G: Type*} [DecidableEq G] (R : Set (FreeGroup G)) (n: ℕ ): ℕ :=
+  sSup (wordArea R '' {w | FreeGroup.norm w ≤ n})
