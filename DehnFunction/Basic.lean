@@ -4,6 +4,7 @@ import Mathlib.Data.Nat.Lattice
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Subgroup.Lattice
 import Mathlib.Algebra.Group.Subgroup.Finite
+import Mathlib.Data.Real.Basic
 
 #check Group.conjugatesOfSet
 
@@ -252,7 +253,6 @@ theorem exists_list_of_mem_closure' {G : Type*} [Group G] {s : Set G} {x : G} :
           exact Subgroup.subset_closure h_y_inv_in_s
         exact (Subgroup.inv_mem_iff (Subgroup.closure s)).mp h_yinv
 
-
     rw [← h_l_prod]
     exact Subgroup.list_prod_mem (Subgroup.closure s) h_all_mem_closure
 
@@ -329,13 +329,10 @@ theorem wordArea_eq_zero_iff {G : Type*} (R : Set (FreeGroup G)) (w : FreeGroup 
       apply Set.eq_empty_iff_forall_notMem.mpr
 
       intro n h_n_in_set
-
       rcases h_n_in_set with ⟨l, h_l_prop, h_n_len, h_w_prod⟩
-
       have h_in_closure : w ∈ Subgroup.normalClosure R := by
 
         refine (mem_normalClosure_iff_prod_conj R w).mpr ?_
-
         use l
 
       exact h_not_in h_in_closure
@@ -392,8 +389,42 @@ theorem dehn_free_grp_is_zero {G: Type*} [DecidableEq G](n: ℕ) :
         subst h_x_eq_0
         simp_all only [Set.mem_setOf_eq]
 
-
-
-
     rw [h_empty]
     simp
+
+theorem dehn_is_monotonic {G : Type*} [DecidableEq G] [Finite G] (R : Set (FreeGroup G)) {n m : ℕ} (h : n ≤ m) :
+    dehn R n ≤ dehn R m := by
+
+  unfold dehn
+
+  refine csSup_le_csSup' ?_ ?_
+  . apply Set.Finite.bddAbove
+
+    apply Set.Finite.image
+    
+    apply Set.toFinite
+  . apply Set.image_subset
+
+    intro w hw
+
+    exact Nat.le_trans hw h
+
+theorem dehn_is_linear_for_finite_groups
+    {G : Type*} [DecidableEq G]
+
+    [Finite G]
+    (R : Set (FreeGroup G))
+
+    [Finite R]
+
+    [Finite (PresentedGroup R)]
+    :
+    ∃ c : ℝ ,
+    ∀ n : ℕ, dehn R n ≤ c * n :=
+by
+  use dehn R (Nat.card (PresentedGroup R))
+  intro n
+  by_cases h_n_le_g: n ≤ Nat.card (PresentedGroup R)
+  . 
+    sorry
+  . sorry
