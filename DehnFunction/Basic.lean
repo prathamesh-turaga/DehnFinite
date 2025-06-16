@@ -399,10 +399,9 @@ theorem dehn_is_monotonic {G : Type*} [DecidableEq G] [Finite G] (R : Set (FreeG
 
   refine csSup_le_csSup' ?_ ?_
   . apply Set.Finite.bddAbove
-
     apply Set.Finite.image
-    
-    apply Set.toFinite
+
+    sorry
   . apply Set.image_subset
 
     intro w hw
@@ -425,6 +424,6 @@ by
   use dehn R (Nat.card (PresentedGroup R))
   intro n
   by_cases h_n_le_g: n ≤ Nat.card (PresentedGroup R)
-  . 
+  .
     sorry
   . sorry
