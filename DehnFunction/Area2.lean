@@ -42,16 +42,17 @@ def CyclicPermutationsOfRelators {G : Type*}[DecidableEq G](R : Set (FreeGroup G
 -- Given a set of relators, returns the set of all their cyclic permutations
 
 
-def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop := True
-  -- ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
+def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
+  ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
 
-def step_n {α : Type} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
+def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
   | 0 => w1 = w2
   | 1 => step relators w1 w2
   | n+1 => ∃ y, step_n relators n w1 y ∧ step relators y w2
 
-noncomputable def Area2 {α : Type} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
+
+noncomputable def Area2 {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
   -- (step_n relators n w 1) ∧
   sInf {n | step_n relators n w 1}
 
@@ -68,12 +69,12 @@ def w : FreeGroup fg := p * q * p⁻¹ * q⁻¹
 
 lemma l1 : step_n R 1 w 1 := by
   unfold step_n step
-  tauto
+  sorry
 
 lemma l2 : Area2 R w = 1 := by
   unfold Area2
   apply Nat.le_antisymm
-  · exact Nat.sInf_le trivial
+  · exact Nat.sInf_le sorry
   · apply Nat.one_le_iff_ne_zero.mpr
     intro h
     simp at h
@@ -81,5 +82,5 @@ lemma l2 : Area2 R w = 1 := by
     · simp [step_n,w] at h1
       revert h1
       exact ne_of_beq_false rfl
-    · have h3 : 1 ∈ {n | step_n R n w 1} := by simp [step_n,step]
+    · have h3 : 1 ∈ {n | step_n R n w 1} := by sorry
       aesop
