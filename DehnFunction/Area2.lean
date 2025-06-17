@@ -49,7 +49,7 @@ def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : �
   match n with
   | 0 => w1 = w2
   | 1 => step relators w1 w2
-  | n+1 => ∃ y, step_n relators n w1 y ∧ step relators y w2
+  | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
 
 
 noncomputable def Area2 {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
@@ -84,3 +84,7 @@ lemma l2 : Area2 R w = 1 := by
       exact ne_of_beq_false rfl
     · have h3 : 1 ∈ {n | step_n R n w 1} := by sorry
       aesop
+
+theorem wordArea_eq_zero_iff2 {G : Type*} [DecidableEq G](R : Set (FreeGroup G)) (w : FreeGroup G) :
+  Area2 R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R := by
+   sorry
