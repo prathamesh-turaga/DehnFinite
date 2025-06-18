@@ -155,3 +155,82 @@ theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : Free
   rw[h_prod]
   apply prod_conj_implies_step_n R
   exact h_l
+
+
+
+
+theorem isConjugate_of_prod {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} {n: ℕ } (x y : FreeGroup G)
+    (h : IsProductOfNConjugates R n y) (h_prod : x * y⁻¹ ∈ Group.conjugatesOfSet R ∨ y * x⁻¹ ∈ Group.conjugatesOfSet R) :
+  IsProductOfNConjugates R (n+1) x:= by
+    rcases h with ⟨ l_y, h_ly_conj, h_ly_len, h_ly_prod⟩
+    cases h_prod with
+    | inl h_conj =>
+        use (x* y⁻¹) :: l_y
+        aesop
+
+    | inr h_conj =>
+        use (y * x⁻¹)⁻¹ :: l_y
+        aesop
+
+
+
+lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))(n : ℕ):
+    ∀ (w : FreeGroup G),(step_n R n w 1) →
+  IsProductOfNConjugates R n w := by
+  induction n with
+
+  | zero =>
+    intros w h_step
+    simp [step_n] at h_step
+    rw [h_step]
+    use []
+    simp
+
+  | succ n ih =>
+    intros w h_step
+    unfold step_n at h_step
+    cases n with
+        | zero =>
+            simp at h_step
+            have h_conj: w ∈ Group.conjugatesOfSet R ∨ w⁻¹ ∈ Group.conjugatesOfSet R := by
+              have h_w_id : w = w* 1⁻¹ := by
+                simp
+              have h_id_w : w⁻¹ = 1 * w⁻¹ := by
+                simp
+              nth_rw 1 [h_w_id, h_id_w]
+              rw [← step_iff_conjugate w 1]
+              exact h_step
+            use [w]
+            aesop
+        | succ m =>
+            simp at h_step
+            rcases h_step with ⟨y, h_step_wy, h_stepn_y1⟩
+            have h_y_prod: IsProductOfNConjugates R (m+1) y := by
+                apply ih
+                exact h_stepn_y1
+
+            have h_prod: w * y⁻¹ ∈ Group.conjugatesOfSet R ∨ y * w⁻¹ ∈ Group.conjugatesOfSet R := by
+                rw[ ← step_iff_conjugate]
+                exact h_step_wy
+            exact isConjugate_of_prod w y h_y_prod h_prod
+
+
+theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
+  ∀ w, w ∉ Subgroup.normalClosure R  → {n | step_n R n w 1} = ∅ := by
+
+  intro w
+  contrapose!
+
+  intro h_nonempty
+
+  rcases h_nonempty with ⟨n, h_step_n_path⟩
+  simp at h_step_n_path
+  have h_is_prod : IsProductOfNConjugates R n w := by
+    exact step_n_implies_IsProductOfNConjugates R n w h_step_n_path
+
+  rw [mem_normalClosure_iff_prod_conj]
+
+  rcases h_is_prod with ⟨l, h_l_conj, h_l_len, h_l_prod⟩
+
+
+  use l

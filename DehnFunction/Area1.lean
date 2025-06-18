@@ -401,9 +401,40 @@ theorem dehn_free_grp_is_zero {G: Type*} [DecidableEq G](n: ℕ) :
 
 theorem fin_gen_words_finite {G : Type*} [DecidableEq G] [Finite G] (m : ℕ): {(w :FreeGroup G) | FreeGroup.norm w ≤ m}.Finite :=by
   expose_names
-  unfold Set.Finite
 
-  sorry
+  unfold Set.Finite
+  induction m with
+  | zero =>
+    simp
+    exact Set.finite_singleton 1
+  | succ m ih =>
+    have h_decomp : {w: FreeGroup G | w.norm ≤ m + 1} = {w | w.norm ≤ m} ∪ {w | w.norm = m + 1} := by
+      ext w
+      simp_all only [Set.coe_setOf, Set.mem_setOf_eq, Set.mem_union]
+      apply Iff.intro
+      · intro a
+        by_cases h_w_norm: FreeGroup.norm w = m+1
+        . right
+          exact h_w_norm
+        . left
+          have h_lt: w.norm < m+1 := by
+            apply Nat.lt_of_le_of_ne
+            . exact a
+            .
+              exact h_w_norm
+          exact Nat.le_of_lt_succ h_lt
+
+      · intro a
+        cases a with
+        | inl h =>
+          exact Nat.le_add_right_of_le h
+        | inr h_1 => simp_all only [le_refl]
+    rw [h_decomp]
+    apply Set.Finite.union
+    . apply ih
+    .
+      sorry
+
 
 
 theorem dehn_is_monotonic {G : Type*} [DecidableEq G] [Finite G] (R : Set (FreeGroup G)) {n m : ℕ} (h : n ≤ m) :
@@ -452,6 +483,9 @@ by
         exact h_n_le_g
       have h_le'' : dehn R n ≤ (dehn R (Nat.card (PresentedGroup R))) * n := by
         exact Nat.le_trans h_le' h_le
-      sorry
+      simp [h_le'']
+      rw [← Nat.cast_mul]
+      apply Nat.cast_le.mpr
+      exact h_le''
 
   . sorry
