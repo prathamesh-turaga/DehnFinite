@@ -1,5 +1,6 @@
 import DehnFunction.Area1
 import DehnFunction.Area2
+import Mathlib.Data.Set.Basic
 
 lemma sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a ⊆ b) : sInf b ≤ sInf a := by
 
@@ -10,10 +11,7 @@ lemma sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a ⊆ b)
       exact h_sub hn_in_a
     exact Nat.sInf_le hn_in_b
 
-theorem step_one_is_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x : FreeGroup G)
-    (h : step R x 1) :
-  x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R :=
-by sorry
+
 
 theorem step_is_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G)
     (h : step R x y) :
@@ -23,8 +21,18 @@ theorem step_is_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x
 theorem isConjugate_of_prod {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} {n: ℕ } (x y : FreeGroup G)
     (h : IsProductOfNConjugates R n y) (h_prod : x * y⁻¹ ∈ Group.conjugatesOfSet R ∨ y * x⁻¹ ∈ Group.conjugatesOfSet R) :
   IsProductOfNConjugates R (n+1) x:= by
+    rcases h with ⟨ l_y, h_ly_conj, h_ly_len, h_ly_prod⟩
+    cases h_prod with
+    | inl h_conj =>
+        use (x* y⁻¹) :: l_y
+        aesop
 
-    sorry
+    | inr h_conj =>
+        use (y * x⁻¹)⁻¹ :: l_y
+        aesop
+
+
+
 lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))(n : ℕ):
     ∀ (w : FreeGroup G),(step_n R n w 1) →
   IsProductOfNConjugates R n w := by
@@ -44,7 +52,12 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
         | zero =>
             simp at h_step
             have h_conj: w ∈ Group.conjugatesOfSet R ∨ w⁻¹ ∈ Group.conjugatesOfSet R := by
-              apply step_one_is_conjugate
+              have h_w_id : w = w* 1⁻¹ := by
+                simp
+              have h_id_w : w⁻¹ = 1 * w⁻¹ := by
+                simp
+              nth_rw 1 [h_w_id, h_id_w]
+              apply step_is_conjugate w 1
               exact h_step
             use [w]
             aesop
@@ -65,7 +78,7 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
 theorem area1_le_area2 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
   wordArea R w ≤ Area2 R w := by
 
-    unfold wordArea Area2
+    unfold Area2
     by_cases h : {n | step_n R n w 1}.Nonempty
     . apply sInf_le_sInf_of_subset h
       intro n hn_in
@@ -73,4 +86,16 @@ theorem area1_le_area2 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : 
       simp at hn_in
       exact step_n_implies_IsProductOfNConjugates R n w hn_in
 
-    . sorry
+    . have h_empty : {n | step_n R n w 1} = ∅ := by
+        exact Set.not_nonempty_iff_eq_empty.mp h
+
+      have h_rhs_zero: sInf {n | step_n R n w 1} = 0 := by
+        rw [h_empty]
+        simp
+
+      rw [h_rhs_zero]
+      have h_w_notin: w ∉ Subgroup.normalClosure R := by
+        apply empty_step R w
+        exact h_empty
+
+      sorry
