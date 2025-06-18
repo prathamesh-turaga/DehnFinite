@@ -4,6 +4,7 @@ import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Data.List.Rotate
 import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
+import DehnFunction.Area1
 
 variable {α : Type*}
 variable [DecidableEq α]
@@ -85,6 +86,46 @@ lemma l2 : Area2 R w = 1 := by
     · have h3 : 1 ∈ {n | step_n R n w 1} := by sorry
       aesop
 
+
+end fg
+
+theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
+    (step R x y) ↔
+  x*y⁻¹ ∈ Group.conjugatesOfSet R ∨ y*x⁻¹ ∈ Group.conjugatesOfSet R := by
+    sorry
+
 theorem wordArea_eq_zero_iff2 {G : Type*} [DecidableEq G](R : Set (FreeGroup G)) (w : FreeGroup G) :
   Area2 R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R := by
+
    sorry
+
+theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+  {n | step_n R n w 1} = ∅ → w ∉ Subgroup.normalClosure R := by
+  contrapose!
+  intro h_mem
+  rw[mem_normalClosure_iff_prod_conj] at h_mem
+  rcases h_mem with ⟨ l, h_l, h_prod⟩
+  use l.length
+  simp
+  rw[h_prod]
+  induction l with
+  | nil => simp[ step_n]
+  | cons x xs ih =>
+    unfold step_n
+    simp
+    have h_x: x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R := by
+      aesop
+
+
+    match h_len_xs : xs.length with
+    | 0 =>
+      simp
+      have h_xsprod: xs.prod = 1 := by
+        aesop
+      simp[h_xsprod]
+      rw[step_iff_conjugate]
+
+
+
+    | m + 1 =>
+      sorry
