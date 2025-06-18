@@ -49,7 +49,7 @@ def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w
 def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
   | 0 => w1 = w2
-  | 1 => step relators w1 w2
+
   | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
 
 
@@ -117,16 +117,23 @@ lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G
     unfold step_n
     match h_len_xs : xs.length with
     | 0 =>
-
+      use 1
       simp at h_len_xs
       have h_x: x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R := by
         aesop
       simp[h_len_xs]
-      rw[step_iff_conjugate]
-      simp
-      exact h_x
+      constructor
+      .
+        rw[step_iff_conjugate]
+        simp
+        exact h_x
+      .
+        unfold step_n
+        simp
+
+
     | m + 1 =>
-      simp
+
       use xs.prod
       constructor
       . rw [step_iff_conjugate]
@@ -191,7 +198,9 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
     unfold step_n at h_step
     cases n with
         | zero =>
-            simp at h_step
+            rcases h_step with ⟨y, h_step, h_y_1_path⟩
+            simp[step_n] at h_y_1_path
+            rw[h_y_1_path] at h_step
             have h_conj: w ∈ Group.conjugatesOfSet R ∨ w⁻¹ ∈ Group.conjugatesOfSet R := by
               have h_w_id : w = w* 1⁻¹ := by
                 simp
@@ -203,7 +212,6 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
             use [w]
             aesop
         | succ m =>
-            simp at h_step
             rcases h_step with ⟨y, h_step_wy, h_stepn_y1⟩
             have h_y_prod: IsProductOfNConjugates R (m+1) y := by
                 apply ih
