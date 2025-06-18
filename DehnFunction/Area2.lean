@@ -99,6 +99,51 @@ theorem wordArea_eq_zero_iff2 {G : Type*} [DecidableEq G](R : Set (FreeGroup G))
 
    sorry
 
+lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))
+
+    : ∀ (l : List (FreeGroup G)), (∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) →
+      step_n R l.length l.prod 1 := by
+
+  intro l
+  induction l with
+  | nil =>
+
+    intro h_conj
+    simp [step_n]
+
+  | cons x xs ih =>
+    intros h_conj
+    simp only [List.length_cons, List.prod_cons]
+    unfold step_n
+    match h_len_xs : xs.length with
+    | 0 =>
+
+      simp at h_len_xs
+      have h_x: x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R := by
+        aesop
+      simp[h_len_xs]
+      rw[step_iff_conjugate]
+      simp
+      exact h_x
+    | m + 1 =>
+      simp
+      use xs.prod
+      constructor
+      . rw [step_iff_conjugate]
+        simp
+        have h_x: x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R := by
+          aesop
+        exact h_x
+      . simp at h_len_xs
+        rw[← h_len_xs]
+        apply ih
+        intro c h_c
+        apply h_conj
+        simp
+        right
+        exact h_c
+
+
 theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
   {n | step_n R n w 1} = ∅ → w ∉ Subgroup.normalClosure R := by
   contrapose!
@@ -108,24 +153,5 @@ theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : Free
   use l.length
   simp
   rw[h_prod]
-  induction l with
-  | nil => simp[ step_n]
-  | cons x xs ih =>
-    unfold step_n
-    simp
-    have h_x: x ∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R := by
-      aesop
-
-
-    match h_len_xs : xs.length with
-    | 0 =>
-      simp
-      have h_xsprod: xs.prod = 1 := by
-        aesop
-      simp[h_xsprod]
-      rw[step_iff_conjugate]
-
-
-
-    | m + 1 =>
-      sorry
+  apply prod_conj_implies_step_n R
+  exact h_l
