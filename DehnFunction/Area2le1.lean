@@ -19,29 +19,25 @@ lemma A_two_le_A_one {α : Type*} {n : ℕ} [DecidableEq α] (rel_set : Set (Fre
     unfold Area2
     apply Nat.sInf_le
     simp
+    have isprconj : ∃ (l : List (FreeGroup α)),(∀ c ∈ l, c ∈ Group.conjugatesOfSet rel_set ∨ c⁻¹ ∈ Group.conjugatesOfSet rel_set) ∧
+    l.length = n ∧ w = l.prod := by sorry
     unfold step_n
     cases n with
     | zero =>
-        apply FreeGroup.toWord_eq_nil_iff.mp ?_
-        simp
-        rw [wordArea_eq_zero_iff] at h
-        rcases h with ⟨a,b⟩
-        rfl
-        sorry
-
+      simp
+      aesop
     | succ =>
-        expose_names
-        aesop
-        unfold wordArea at h
-        have hmod : sInf {n | IsProductOfNConjugates rel_set n w} <= 1 := by exact Nat.le_of_eq h
-        have one_in_set : 1 ∈ {n | IsProductOfNConjugates rel_set n w} := by sorry
-        unfold IsProductOfNConjugates at one_in_set
-        have smalllist : ∃ l, (∀ c ∈ l, c ∈ Group.conjugatesOfSet rel_set ∨ c⁻¹ ∈ Group.conjugatesOfSet rel_set) ∧ l.length = 1 ∧ w = List.prod l := by exact
-          one_in_set
-        rcases smalllist with ⟨a,b,c,d⟩
-        sorry
-        /-rw [step_is_conjugate w y]
-        simp [one_mul, mul_one]-/
+      expose_names
+      split
+      · aesop
+      · expose_names
+        simp at heq
+        rw [heq] at isprconj
+        simp at isprconj
+        rcases isprconj with ⟨ll,hypo⟩
+        rcases hypo with ⟨fs, sc, th⟩
+        apply step_is_conjugate
+      · sorry
 
 
 
