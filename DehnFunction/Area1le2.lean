@@ -13,10 +13,6 @@ lemma sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a ⊆ b)
 
 
 
-theorem step_is_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G)
-    (h : step R x y) :
-  x*y⁻¹ ∈ Group.conjugatesOfSet R ∨ y*x⁻¹ ∈ Group.conjugatesOfSet R := by
-    sorry
 
 theorem isConjugate_of_prod {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} {n: ℕ } (x y : FreeGroup G)
     (h : IsProductOfNConjugates R n y) (h_prod : x * y⁻¹ ∈ Group.conjugatesOfSet R ∨ y * x⁻¹ ∈ Group.conjugatesOfSet R) :
@@ -57,7 +53,7 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
               have h_id_w : w⁻¹ = 1 * w⁻¹ := by
                 simp
               nth_rw 1 [h_w_id, h_id_w]
-              apply step_is_conjugate w 1
+              rw [← step_iff_conjugate w 1]
               exact h_step
             use [w]
             aesop
@@ -69,7 +65,7 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
                 exact h_stepn_y1
 
             have h_prod: w * y⁻¹ ∈ Group.conjugatesOfSet R ∨ y * w⁻¹ ∈ Group.conjugatesOfSet R := by
-                apply step_is_conjugate
+                rw[ ← step_iff_conjugate]
                 exact h_step_wy
             exact isConjugate_of_prod w y h_y_prod h_prod
 
@@ -98,4 +94,7 @@ theorem area1_le_area2 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : 
         apply empty_step R w
         exact h_empty
 
-      sorry
+      simp [h_w_notin]
+      rw [wordArea_eq_zero_iff R w]
+      right
+      exact h_w_notin
