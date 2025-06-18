@@ -124,6 +124,8 @@ theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : Free
         aesop
       simp[h_xsprod]
       rw[step_iff_conjugate]
+      simp
+      exact h_x
 
 
 
