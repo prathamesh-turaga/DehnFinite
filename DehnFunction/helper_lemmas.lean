@@ -85,34 +85,35 @@ def CycReduce {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α �
 
 
 
+--  have other₁ : True := sorry
+--  simp [this₁, this₂, that₁, that₂, that₃]
+
+lemma uncycle_LL_eq_uncycle_L {α : Type*} [DecidableEq α] (L : List (α × Bool)) (a : α) (b : Bool) :
+    Uncycle ((a, b) :: L ++ [(a, !b)]) = Uncycle L := by
+  -- First, handle the case where L is empty
+  cases L with
+  | nil =>
+    simp [Uncycle]
+  | cons hd tl =>
+    have this₁: (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl ++ [(a, !b)]).dropLast := by exact rfl
+    have this₂ : (hd :: tl ++ [(a, !b)]).dropLast = (hd :: tl) := by exact List.dropLast_concat
+    -- Now we can simplify the if statement
+    have this₃ : (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl) := by exact this₂
+    -- For non-empty L, we need to analyze Uncycle's behavior
+    simp [Uncycle]
+    have last_eq : ((hd :: tl) ++ [(a, !b)]).getLast (by simp) = (a, !b) := by simp [this₁, this₂, this₃]
+    -- The key step: the condition x.1 = last.1 ∧ x.2 ≠ last.2 is exactly true
+    have cond_true : a = a ∧ b ≠ !b := by
+      simp [Bool.not_eq_true']
+    rw [this₃]
+
+    -- The recursive call now works on the middle part, which is exactly L
+
+
 lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool)), ∀ p : α, ∀ b : Bool, Uncycle L = Uncycle ((p, b) :: L ++ [(p, !b)]) := by
   intros L p b
   simp
   let LL := ((p, b) :: L ++ [(p, !b)])
-  have this₁ : LL ≠ [] := by exact List.concat_ne_nil (p, !b) ((p, b) :: L)
-  have this₂ : ∀ x : α × Bool, LL ≠ [x] := by aesop
-  have that₁ : LL.tail ≠ [] := by exact fun a ↦ this₂ (p, b) (congrArg (List.cons (p, b)) a)
-  have that₂ : LL.tail.getLast (that₁) = (p, !b) := by simp [LL]
-  have that₃ : LL.head (this₁)= (p, b) := by simp [LL]
-  have that₄ : LL.length = L.length + 2 := by aesop
-  have that₅ : LL.getLast this₁ = (p, !b) := by exact List.getLast_concat
-  induction L.length with
-  | zero =>
-    unfold Uncycle
-    aesop
-    unfold Uncycle
-    simp
-    unfold Uncycle
-    simp [List.dropLast]
-    have other₁ : (((((fst_1, snd_1) :: ys).getLast (by simp)).1, snd) :: ((fst_1, snd_1) :: (ys ++ [(p, !b)])).dropLast) = ((((fst_1, snd_1) :: ys).getLast (by simp)).1, snd) :: ((fst_1, snd_1) :: ys) := by simp [List.dropLast]
-    simp [List.dropLast, other₁]
-    · sorry
-    · simp [List.dropLast]
-      unfold Uncycle
-      aesop
-  | succ n _ =>
-    expose_names
-    exact h
-
---  have other₁ : True := sorry
---  simp [this₁, this₂, that₁, that₂, that₃]
+  rw [<- uncycle_LL_eq_uncycle_L L p b]
+  unfold Uncycle
+  simp
