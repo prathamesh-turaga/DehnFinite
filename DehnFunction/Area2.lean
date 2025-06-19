@@ -19,28 +19,40 @@ def list_to_free {γ : Type*} (l : List (List (γ × Bool))) : List (FreeGroup �
 
 def CycPerm {α : Type*} [DecidableEq α] (w : FreeGroup α) := list_to_free (CycPermList w)
 
+
+
 def ReduceMyPairs {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
   match L with
+
   | [] => []
-  | [x] => [x]
-  | (p, b) :: xs =>
-    match xs.getLast? with
-    | some (q, b') =>
-      if p == q && b != b' then
-        ReduceMyPairs (xs.dropLast)
+  | [_] => L
+
+  | x :: y :: ys =>
+
+      let xs := y :: ys
+
+      let last := xs.getLast (by simp)
+      let middle := xs.dropLast
+
+      if x.1 = last.1 ∧ x.2 ≠ last.2 then
+        ReduceMyPairs middle
       else
-        (p, b) :: xs
-    | none => (p, b) :: xs  -- Shouldn't happen due to first match
+        L
 termination_by L.length
+
+
 #check ReduceMyPairs
 
 def CycRed {α : Type*} [DecidableEq α] (w : FreeGroup α) := FreeGroup.mk (ReduceMyPairs (FreeGroup.toWord w))
 --Cyclically reduces a freeword
 
+def CyclicPermutationsOfRelators {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) : Set (FreeGroup G) :=
 
-def CyclicPermutationsOfRelators {G : Type*}[DecidableEq G](R : Set (FreeGroup G)) : Set (FreeGroup G) :=
-  ⋃ r ∈ R, {w | FreeGroup.toWord w ∈ (FreeGroup.toWord r).cyclicPermutations}
--- Given a set of relators, returns the set of all their cyclic permutations
+  ⋃ r ∈ R,
+    { elem |
+      ∃ word ∈ (FreeGroup.toWord r).cyclicPermutations,
+      elem = FreeGroup.mk word
+    }
 
 
 def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
@@ -57,37 +69,7 @@ noncomputable def Area2 {α : Type*} [DecidableEq α] (relators : Set (FreeGroup
   -- (step_n relators n w 1) ∧
   sInf {n | step_n relators n w 1}
 
-inductive fg | a | b
-   deriving DecidableEq, Repr
 
-namespace fg
-def p := FreeGroup.of a
-def q := FreeGroup.of b
-
-def R : Set (FreeGroup fg) := {p * q * p⁻¹ * q⁻¹}
-
-def w : FreeGroup fg := p * q * p⁻¹ * q⁻¹
-
-lemma l1 : step_n R 1 w 1 := by
-  unfold step_n step
-  sorry
-
-lemma l2 : Area2 R w = 1 := by
-  unfold Area2
-  apply Nat.le_antisymm
-  · exact Nat.sInf_le sorry
-  · apply Nat.one_le_iff_ne_zero.mpr
-    intro h
-    simp at h
-    rcases h with h1|h2
-    · simp [step_n,w] at h1
-      revert h1
-      exact ne_of_beq_false rfl
-    · have h3 : 1 ∈ {n | step_n R n w 1} := by sorry
-      aesop
-
-
-end fg
 
 theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
     (step R x y) ↔
@@ -242,3 +224,58 @@ theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
 
 
   use l
+
+
+lemma reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bool)) :
+    ∃ (U V : List (α × Bool)), L = U ++ ReduceMyPairs L ++ V ∧ FreeGroup.mk (V ++ U) = 1 := by
+
+
+  sorry
+
+
+theorem cycRed_is_a_cyclic_permutation {G : Type*} [DecidableEq G] (y : FreeGroup G) :
+  CycRed y ∈ CyclicPermutationsOfRelators {y} := by
+
+  let L := FreeGroup.toWord y
+  let M := ReduceMyPairs L
+  unfold CyclicPermutationsOfRelators
+  simp
+
+  unfold CycRed
+
+  have h_prop := reduceMyPairs_property L
+  rcases h_prop with ⟨U, V, h_decomp, h_vu_is_one⟩
+
+
+  let p := M ++ V ++ U
+  use p
+
+
+  constructor
+
+  · change p ~r L
+    use (M ++ V).length
+    dsimp [p]
+    rw[h_decomp]
+    have h_M_def: ReduceMyPairs L = M := by
+
+      rfl
+    rw [h_M_def]
+    rw [List.rotate_eq_drop_append_take]
+    . simp
+      have h_assoc: M ++ (V ++ U) = (M ++ V) ++ U := by
+        simp
+      rw [h_assoc]
+      rw [List.take_append_of_le_length (by simp)]
+      simp
+    . simp
+  · dsimp [p]
+    change FreeGroup.mk M = FreeGroup.mk (M ++ V ++ U)
+    apply Eq.symm
+    calc
+      FreeGroup.mk (M ++ V ++ U) = FreeGroup.mk M * FreeGroup.mk (V ++ U) := by
+        simp
+      _ = FreeGroup.mk M * 1 := by
+        rw[h_vu_is_one]
+      _ = FreeGroup.mk M := by
+        simp
