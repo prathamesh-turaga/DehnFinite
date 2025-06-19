@@ -2,6 +2,7 @@
 import Mathlib.GroupTheory.PresentedGroup
 import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
+import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Subgroup.Lattice
 import Mathlib.Algebra.Group.Subgroup.Finite
@@ -117,3 +118,7 @@ lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool
   rw [<- uncycle_LL_eq_uncycle_L L p b]
   unfold Uncycle
   simp
+
+
+variable {α : Type*} [DecidableEq α]
+ -- Generalize the problem to any list L instead of c.toWord
