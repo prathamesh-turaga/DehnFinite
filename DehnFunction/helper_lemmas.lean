@@ -283,16 +283,31 @@ lemma star {α : Type*} [DecidableEq α]: ∀ (L : List (α × Bool)), (Uncycle 
     sorry
 #check List.rec
 
-
-lemma Uncycleconj_in_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
-  intros g y
-  have : (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
+lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
     simp! [FreeGroup.toWord_mul]
     rw [<-List.append_assoc]
     nth_rewrite 3 [<-FreeGroup.reduce_toWord]
     rw [<-FreeGroup.reduce_invRev]
     rw [FreeGroup.reduce_append_reduce_reduce]
-  rw [this]
+
+def one_uncyc {α : Type*} [DecidableEq α] (L : List (α × Bool)) := FreeGroup.reduce (L.rotate 1)
+
+#eval [1,2,3].rotate 3
+
+lemma one_uncyc_lemma {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), ∀ p : α, ∀ b : Bool, w.toWord = one_uncyc ((p, b) :: w.toWord ++ [(p, !b)]) := by
+  intros w a b
+  apply Eq.symm
+  calc
+    one_uncyc ((a, b) :: w.toWord ++ [(a, !b)]) = FreeGroup.reduce (w.toWord ++ [(a, !b), (a, b)]) := by
+      unfold one_uncyc
+      simp
+    _ = FreeGroup.reduce (FreeGroup.reduce w.toWord ++ FreeGroup.reduce [(a, !b), (a, b)]) := by
+      simp [FreeGroup.reduce_append_reduce_reduce]
+
+
+lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
+  intros g y
+  rw [form_of_conj]
   simp
   let conju := FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord)
   sorry
