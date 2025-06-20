@@ -307,13 +307,29 @@ lemma one_uncyc_lemma {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), �
     _ = FreeGroup.reduce (FreeGroup.reduce w.toWord) := by simp!
     _ = w.toWord := by simp!
 
+def n_uncyc {α : Type*} [DecidableEq α] (L : List (α × Bool)) (n : ℕ) := FreeGroup.reduce (L.rotate n)
+
+def uncyc2 {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
+  match L with
+
+  | [] => []
+
+  | x :: xs =>
+    List.reverseRecOn xs
+    -- {motive : List (α×Bool) → List (α×Bool)}
+    ([])
+    (fun ys y ys_red => sorry)
+    -- match xs with
+    -- | [] => [x]
+    -- | ys++[y] => sorry
+
 lemma same_same_but_different {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), ∀ p : α, ∀ b : Bool, one_uncyc ((p, b) :: w.toWord ++ [(p, !b)]) = Uncycle ((p, b) :: w.toWord ++ [(p, !b)]) := by
   intros w a b
   rw [<- one_uncyc_lemma]
   let L := w.toWord
   rw [<- if_conj_then_cyc]
+  -- dsimp [Uncycle]
   sorry
-
 
 
 
@@ -323,3 +339,75 @@ lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : Fr
   simp
   let conju := FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord)
   sorry
+
+#check List.IsRotated
+
+
+
+
+
+
+
+
+
+def uncyclic {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := CycReduce L = L
+
+-- def uncyclic_elt {α : Type*} [DecidableEq α] (w : FreeGroup α) : Prop := CycRed w = w
+
+section
+
+variable {α : Type*} [DecidableEq α] (L : List (α × Bool)) (w : FreeGroup α)
+
+instance : Decidable (uncyclic L) :=
+  inferInstanceAs (Decidable (CycReduce L = L))
+
+-- instance : Decidable (uncyclic_elt w) :=
+--   inferInstanceAs (Decidable (CycRed w = w))
+
+end
+
+#check FreeGroup.reduce
+
+-- def isCycRed {α : Type*} [DecidableEq α] (w1 : FreeGroup α) (w2 : FreeGroup α) (hw1 : uncyclic_elt w1) (hw2 : uncyclic_elt w2) : Prop :=
+--   w1.toWord ∈ (w2.toWord.cyclicPermutations.map FreeGroup.reduce)
+
+def isCycPerm' {α : Type*} [DecidableEq α] (L1 L2 : List (α×Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2) : Prop :=
+  (FreeGroup.reduce L1) ∈ ((FreeGroup.reduce L2).cyclicPermutations)
+
+def isCycPerm {α : Type*} [DecidableEq α] (L1 L2 : List (α×Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2) : Prop :=
+  (FreeGroup.reduce L1).IsRotated (FreeGroup.reduce L2)
+
+section
+
+variable {α : Type*} [DecidableEq α] (L1 L2 : List (α × Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2)
+-- #synth Decidable (isCycPerm L1 L2 hL1 hL2)
+instance : Decidable (isCycPerm L1 L2 hL1 hL2) :=
+  inferInstanceAs (Decidable ((FreeGroup.reduce L1).IsRotated (FreeGroup.reduce L2)))
+
+end
+
+theorem isCycPerm_same {α : Type*} [DecidableEq α] (L1 L2 : List (α×Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2) : isCycPerm L1 L2 hL1 hL2 ↔ isCycPerm' L1 L2 hL1 hL2 := by
+  dsimp [isCycPerm,isCycPerm']
+  symm
+  exact List.mem_cyclicPermutations_iff
+
+theorem isCycPerm_refl {α : Type*} [DecidableEq α] (L1 : List (α × Bool)) (hL1 : uncyclic L1) : isCycPerm L1 L1 hL1 hL1 := by
+  dsimp [isCycPerm]
+  rfl
+
+theorem isCycPerm_symm {α : Type*} [DecidableEq α] (L1 L2 : List (α × Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2) : isCycPerm L1 L2 hL1 hL2 → isCycPerm L2 L1 hL2 hL1 := by
+  dsimp [isCycPerm]
+  exact fun a ↦ id (List.IsRotated.symm a)
+
+theorem isCycPerm_trans {α : Type*} [DecidableEq α] (L1 L2 L3 : List (α × Bool)) (hL1 : uncyclic L1) (hL2 : uncyclic L2) (hL3 : uncyclic L3) :
+  isCycPerm L1 L2 hL1 hL2 → isCycPerm L2 L3 hL2 hL3 → isCycPerm L1 L3 hL1 hL3 := by
+  dsimp [isCycPerm]
+  exact fun a a_1 ↦ List.IsRotated.trans a a_1
+
+-- #synth Decidable (uncyclic L)
+
+-- def FreeGroup.isCPerm {α : Type*} (w1 : FreeGroup )
+
+-- def List.isCPerm {α : Type*} (L1 : List α) (L2 : List α) : Prop := L1 ∈ L2.cyclicPermutations
+-- #check List.isro
+-- theorem List.isCPerm_refl {α : Type*} (L1 : List α) : isCPerm
