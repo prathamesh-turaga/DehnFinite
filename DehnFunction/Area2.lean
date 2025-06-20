@@ -226,11 +226,117 @@ theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
   use l
 
 
-lemma reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bool)) :
+theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bool)) :
     ∃ (U V : List (α × Bool)), L = U ++ ReduceMyPairs L ++ V ∧ FreeGroup.mk (V ++ U) = 1 := by
 
+  match h_L_eq : L with
 
-  sorry
+  | [] =>
+
+    use [], []
+    simp
+    constructor
+    . unfold ReduceMyPairs
+      simp
+    .
+     subst h_L_eq
+     rfl
+
+
+  | [x] =>
+    use [], []
+    simp
+    constructor
+    . unfold ReduceMyPairs
+      simp
+    .
+     subst h_L_eq
+     rfl
+  | x :: y :: ys =>
+    let xs := y :: ys
+    have h_L_form : L = x :: xs := by
+      simp [h_L_eq]
+      simp[xs]
+
+    let last := xs.getLast (by simp)
+    let middle := xs.dropLast
+    if h_if : x.1 = last.1 ∧ x.2 ≠ last.2 then
+      have h_def : ReduceMyPairs L = ReduceMyPairs middle := by
+        rw [ReduceMyPairs.eq_def]
+        rw [h_L_form]
+        aesop
+
+      have ih := reduceMyPairs_property middle
+      rcases ih with ⟨U', V', h_middle_decomp, h_vu'_is_one⟩
+
+      let U := [x] ++ U'
+      let V := V' ++ [last]
+      use U, V
+
+      constructor
+
+
+      · rw[← h_L_eq]
+        dsimp [U, V]
+        rw [h_def, h_middle_decomp]
+
+        rw [h_L_form]
+        simp only [List.append_assoc, List.cons_append, ← h_middle_decomp]
+
+        rw [show xs = middle ++ [last]
+        by
+          change xs = xs.dropLast ++ [xs.getLast _]
+          exact
+            Eq.symm
+              (List.dropLast_concat_getLast
+                (of_eq_true
+                  (Eq.trans (congrArg Not (eq_false' fun h ↦ List.noConfusion h))
+                    not_false_eq_true)))
+          ]
+        simp
+        rw[← List.append_assoc]
+        rw [← List.append_assoc ]
+        rw[← h_middle_decomp]
+
+
+      · dsimp [U, V]
+        rw [List.append_assoc]
+
+        rw [← FreeGroup.mul_mk, ← FreeGroup.mul_mk]
+        change FreeGroup.mk V' * (FreeGroup.mk [last] * FreeGroup.mk ([x] ++ U')) = 1
+        rw [← FreeGroup.mul_mk]
+
+        have h_cancel : FreeGroup.mk [last] * FreeGroup.mk [x] = 1 := by
+          have h_fst : x.1 = last.1 := by
+            simp [h_if]
+          have h_snd : (x.2) ≠  last.2 := by
+            simp [h_if]
+          have h_snd' : last.2 = !x.2 := by
+            exact Bool.eq_not.mpr (id (Ne.symm h_snd))
+
+
+          rw [mul_eq_one_iff_eq_inv]
+          rw [FreeGroup.inv_mk]
+          simp[FreeGroup.invRev]
+          change FreeGroup.mk [(last.1, last.2)] = FreeGroup.mk [(x.1, !x.2)]
+          rw[← h_fst, h_snd']
+
+        rw[← mul_assoc (FreeGroup.mk [last]) (FreeGroup.mk [x]) (FreeGroup.mk U')]
+        rw [h_cancel]
+        simp
+        exact h_vu'_is_one
+    else
+      have h_def : ReduceMyPairs L = L := by
+        rw [h_L_eq]
+        simp [ReduceMyPairs, h_if]
+        aesop
+
+
+      use [], []
+      rw[← h_L_eq]
+      rw [h_def]
+      aesop
+  termination_by L.length
 
 
 theorem cycRed_is_a_cyclic_permutation {G : Type*} [DecidableEq G] (y : FreeGroup G) :
