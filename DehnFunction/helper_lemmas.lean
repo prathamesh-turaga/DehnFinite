@@ -12,7 +12,7 @@ import Mathlib.Algebra.Group.Conj
 import Mathlib.Data.List.Rotate
 import DehnFunction.Area1
 
-def ReduceMyPairs {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
+def Uncycle {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
   match L with
 
   | [] => []
@@ -26,15 +26,15 @@ def ReduceMyPairs {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (
       let middle := xs.dropLast
 
       if x.1 = last.1 ∧ x.2 ≠ last.2 then
-        ReduceMyPairs middle
+        Uncycle middle
       else
         L
 termination_by L.length
 
 
-#check ReduceMyPairs
 
-def CycRed {α : Type*} [DecidableEq α] (w : FreeGroup α) := FreeGroup.mk (ReduceMyPairs (FreeGroup.toWord w))
+
+def CycRed {α : Type*} [DecidableEq α] (w : FreeGroup α) := FreeGroup.mk (Uncycle (FreeGroup.toWord w))
 --Cyclically reduces a freeword
 
 def CyclicPermutationsOfRelators {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) : Set (FreeGroup G) :=
@@ -54,8 +54,8 @@ theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (
   x*y⁻¹ ∈ Group.conjugatesOfSet R ∨ y*x⁻¹ ∈ Group.conjugatesOfSet R := by
     sorry
 
-theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bool)) :
-    ∃ (U V : List (α × Bool)), L = U ++ ReduceMyPairs L ++ V ∧ FreeGroup.mk (V ++ U) = 1 := by
+theorem Uncycle_property {α : Type*} [DecidableEq α] (L : List (α × Bool)) :
+    ∃ (U V : List (α × Bool)), L = U ++ Uncycle L ++ V ∧ FreeGroup.mk (V ++ U) = 1 := by
 
   match h_L_eq : L with
 
@@ -64,7 +64,7 @@ theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bo
     use [], []
     simp
     constructor
-    . unfold ReduceMyPairs
+    . unfold Uncycle
       simp
     .
      subst h_L_eq
@@ -75,7 +75,7 @@ theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bo
     use [], []
     simp
     constructor
-    . unfold ReduceMyPairs
+    . unfold Uncycle
       simp
     .
      subst h_L_eq
@@ -89,12 +89,12 @@ theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bo
     let last := xs.getLast (by simp)
     let middle := xs.dropLast
     if h_if : x.1 = last.1 ∧ x.2 ≠ last.2 then
-      have h_def : ReduceMyPairs L = ReduceMyPairs middle := by
-        rw [ReduceMyPairs.eq_def]
+      have h_def : Uncycle L = Uncycle middle := by
+        rw [Uncycle.eq_def]
         rw [h_L_form]
         aesop
 
-      have ih := reduceMyPairs_property middle
+      have ih := Uncycle_property middle
       rcases ih with ⟨U', V', h_middle_decomp, h_vu'_is_one⟩
 
       let U := [x] ++ U'
@@ -154,9 +154,9 @@ theorem reduceMyPairs_property {α : Type*} [DecidableEq α] (L : List (α × Bo
         simp
         exact h_vu'_is_one
     else
-      have h_def : ReduceMyPairs L = L := by
+      have h_def : Uncycle L = L := by
         rw [h_L_eq]
-        simp [ReduceMyPairs, h_if]
+        simp [Uncycle, h_if]
         aesop
 
 
@@ -171,13 +171,13 @@ theorem cycRed_is_a_cyclic_permutation {G : Type*} [DecidableEq G] (y : FreeGrou
   CycRed y ∈ CyclicPermutationsOfRelators {y} := by
 
   let L := FreeGroup.toWord y
-  let M := ReduceMyPairs L
+  let M := Uncycle L
   unfold CyclicPermutationsOfRelators
   simp
 
   unfold CycRed
 
-  have h_prop := reduceMyPairs_property L
+  have h_prop := Uncycle_property L
   rcases h_prop with ⟨U, V, h_decomp, h_vu_is_one⟩
 
 
@@ -191,7 +191,7 @@ theorem cycRed_is_a_cyclic_permutation {G : Type*} [DecidableEq G] (y : FreeGrou
     use (M ++ V).length
     dsimp [p]
     rw[h_decomp]
-    have h_M_def: ReduceMyPairs L = M := by
+    have h_M_def: Uncycle L = M := by
 
       rfl
     rw [h_M_def]
@@ -220,31 +220,6 @@ theorem cycRed_is_a_cyclic_permutation {G : Type*} [DecidableEq G] (y : FreeGrou
 -- STUFF FROM AREA2
 
 
-
-def ReduceMyPairs₂ {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
-  match L with
-  | [] => []
-  | [x] => [x]
-  | (p, b) :: xs =>
-    if (FreeGroup.mk [(p,b)]) * (FreeGroup.mk [xs.getLast (sorry)]) == 1 then
-      ReduceMyPairs₂ (xs.dropLast)
-    else
-      (p, b) :: xs
-termination_by L.length
-
-def Uncycle {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
-  match L with
-  | [] => []
-  | [_] => L
-  | x :: y :: ys =>
-      let xs := y :: ys
-      let last := xs.getLast (by simp)
-      let middle := xs.dropLast
-      if x.1 = last.1 ∧ x.2 ≠ last.2 then
-        Uncycle middle
-      else
-        L
-termination_by L.length
 
 def CycReduce {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) := Uncycle (FreeGroup.reduce L)
 -- Takes a list and returns cyclic reduction of that list's freely-reduced form.
