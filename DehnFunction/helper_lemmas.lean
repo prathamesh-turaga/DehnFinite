@@ -2,6 +2,7 @@
 import Mathlib.GroupTheory.PresentedGroup
 import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
+import Mathlib.GroupTheory.FreeGroup.Basic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Subgroup.Lattice
 import Mathlib.Algebra.Group.Subgroup.Finite
@@ -15,17 +16,6 @@ import DehnFunction.Area2
 import DehnFunction.Area_equiv
 
 
-def ReduceMyPairs₂ {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
-  match L with
-  | [] => []
-  | (p, b) :: xs =>
-    if xs == [] then
-      [(p, b)]
-    else
-      if p == (xs.getLast (by sorry)).1 && b != (xs.getLast (by sorry)).2 then ReduceMyPairs₂ xs.dropLast
-      else (p, b) :: xs
-termination_by L.length
-
 
 def step_n₂ {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
@@ -34,23 +24,16 @@ def step_n₂ {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n :
   | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
 
 
-def ReduceMyPairs₃ {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
+def ReduceMyPairs₂ {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
   match L with
   | [] => []
   | [x] => [x]
   | (p, b) :: xs =>
-    if (FreeGroup.mk [(p,b)]) * (FreeGroup.mk [xs.getLast sorry]) == 1 then
-      ReduceMyPairs (xs.dropLast)
+    if (FreeGroup.mk [(p,b)]) * (FreeGroup.mk [xs.getLast (sorry)]) == 1 then
+      ReduceMyPairs₂ (xs.dropLast)
     else
       (p, b) :: xs
 termination_by L.length
-
-def Uncyclic {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Bool :=
-  match L with
-  | [] => true
-  | [x] => true
-  | (p, b) :: xs =>
-    (L == FreeGroup.reduce L) ∧ ((FreeGroup.mk [(p,b)]) * (FreeGroup.mk [xs.getLast (by sorry)]) == 1)
 
 def Uncycle {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
   match L with
@@ -117,3 +100,26 @@ lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool
   rw [<- uncycle_LL_eq_uncycle_L L p b]
   unfold Uncycle
   simp
+
+
+lemma star {α : Type*} [DecidableEq α]: ∀ (L : List (α × Bool)), (Uncycle (FreeGroup.reduce L)).IsRotated (FreeGroup.reduce (Uncycle L)) := by
+  intros L
+  induction Uncycle L with
+  | nil => sorry
+  | cons head tail ih =>
+    simp [ih]
+#check List.rec
+
+
+lemma Uncycleconj_in_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
+  intros g y
+  have : (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
+    simp! [FreeGroup.toWord_mul]
+    rw [<-List.append_assoc]
+    nth_rewrite 3 [<-FreeGroup.reduce_toWord]
+    rw [<-FreeGroup.reduce_invRev]
+    rw [FreeGroup.reduce_append_reduce_reduce]
+  rw [this]
+  simp
+  let conju := FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord)
+  sorry
