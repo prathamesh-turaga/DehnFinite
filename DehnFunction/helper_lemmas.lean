@@ -302,7 +302,19 @@ lemma one_uncyc_lemma {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), �
       unfold one_uncyc
       simp
     _ = FreeGroup.reduce (FreeGroup.reduce w.toWord ++ FreeGroup.reduce [(a, !b), (a, b)]) := by
-      simp [FreeGroup.reduce_append_reduce_reduce]
+      nth_rewrite 1 [<-FreeGroup.reduce_append_reduce_reduce]
+      simp
+    _ = FreeGroup.reduce (FreeGroup.reduce w.toWord) := by simp!
+    _ = w.toWord := by simp!
+
+lemma same_same_but_different {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), ∀ p : α, ∀ b : Bool, one_uncyc ((p, b) :: w.toWord ++ [(p, !b)]) = Uncycle ((p, b) :: w.toWord ++ [(p, !b)]) := by
+  intros w a b
+  rw [<- one_uncyc_lemma]
+  let L := w.toWord
+  rw [<- if_conj_then_cyc]
+  sorry
+
+
 
 
 lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
