@@ -1,3 +1,3 @@
--- This module serves as the root of the `DehnFunction` library.
--- Import modules here that should be built as part of the library.
-import DehnFunction.Basic
+import DehnFunction.Area1
+import DehnFunction.Area2
+import DehnFunction.Area_equiv
