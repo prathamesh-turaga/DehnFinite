@@ -42,8 +42,8 @@ def CyclicPermutationsOfRelators {G : Type*}[DecidableEq G](R : Set (FreeGroup G
 -- Given a set of relators, returns the set of all their cyclic permutations
 
 
-def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop := True
-  -- ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
+def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
+  ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
 
 def step_n {α : Type} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
@@ -68,12 +68,18 @@ def w : FreeGroup fg := p * q * p⁻¹ * q⁻¹
 
 lemma l1 : step_n R 1 w 1 := by
   unfold step_n step
-  tauto
+  left
+  simp [R,w,CycRed]
+  have h1 : (p * q * p⁻¹ * q⁻¹).toWord = [(a,true),(b,true),(a,false),(b,false)] := by rfl
+  simp [h1,ReduceMyPairs,CyclicPermutationsOfRelators]
+  rfl
 
 lemma l2 : Area2 R w = 1 := by
   unfold Area2
   apply Nat.le_antisymm
-  · exact Nat.sInf_le trivial
+  · apply Nat.sInf_le
+    simp
+    exact l1
   · apply Nat.one_le_iff_ne_zero.mpr
     intro h
     simp at h
@@ -81,5 +87,5 @@ lemma l2 : Area2 R w = 1 := by
     · simp [step_n,w] at h1
       revert h1
       exact ne_of_beq_false rfl
-    · have h3 : 1 ∈ {n | step_n R n w 1} := by simp [step_n,step]
+    · have h3 : 1 ∈ {n | step_n R n w 1} := by simp; exact l1
       aesop
