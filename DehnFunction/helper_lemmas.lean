@@ -227,6 +227,32 @@ def CycReduce {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α �
 
 
 
+def IsRed {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Bool := FreeGroup.reduce L == L
+
+
+lemma uncyc_is_sublist {α : Type*} [DecidableEq α]  (L : List (α × Bool)) : List.Sublist (Uncycle L) L := by sorry
+
+lemma uncyc_of_red_is_red {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRed L → IsRed (Uncycle L) := by
+  intro hypo
+  unfold IsRed at hypo
+  unfold IsRed
+  simp; simp at hypo
+  cases L with
+  | nil =>
+    unfold Uncycle
+    simp
+  | cons head tail =>
+    cases tail with
+    | nil =>
+        simp [Uncycle]
+    | cons head tail =>
+
+      simp [Uncycle]
+      expose_names
+      sorry
+
+
+
 
 -- reduced word a₁a₂...a_n is cycreduced iff it is reduced and ¬(a₁a_n = 1)
 
@@ -306,12 +332,35 @@ lemma same_same_but_different {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup
   rw [<- if_conj_then_cyc]
 
 
+def cycreduced {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := (IsRed L) ∧ (Uncycle L = L)
 
-lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : FreeGroup α), /-uncyclic x.toWord,-/ (Uncycle ((g*x*g⁻¹).toWord)) ~r (FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord))) := by
+lemma uncyclicmid {α : Type*} [DecidableEq α] (g x : FreeGroup α) (h : cycreduced x.toWord): (IsRed (g.toWord ++ x.toWord)) ∨ (IsRed (x.toWord ++ FreeGroup.invRev g.toWord)) := by sorry
+
+lemma technique {α : Type*} [DecidableEq α] : ∀ (P Q : List (α × Bool)), !IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I)∧(IsRed J)∧(IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
+
+lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)) (hp : IsRed P) (hq : IsRed Q) (hr : IsRed R) (h₁ : IsRed (P++Q)) (h₂ : IsRed (Q++R)) : (IsRed (P++Q++R)) := by sorry
+
+lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := by sorry
+
+lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : FreeGroup α), /-cycreduced x.toWord,-/ (Uncycle ((g*x*g⁻¹).toWord)) ~r (FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord))) := by
   intro g x
   rw [form_of_conj]
   let Lg := g.toWord
   let Lx := x.toWord
+  have : g⁻¹.toWord = FreeGroup.invRev g.toWord := by exact FreeGroup.toWord_inv g
+  have key : FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (x.toWord)) := by sorry
+  rw [this]
+  rw [uncyc_on_conj]
+  cases g.toWord with
+  | nil =>
+    simp
+    have : Uncycle x.toWord = FreeGroup.reduce (Uncycle x.toWord) := by apply uncyc_of_red_is_red (by sorry)
+  | cons head tail => sorry
+
+
+
+
+  sorry
 
 
 
