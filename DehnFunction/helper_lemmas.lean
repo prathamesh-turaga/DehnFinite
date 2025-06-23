@@ -274,14 +274,6 @@ lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool
   simp
 
 
-lemma star {α : Type*} [DecidableEq α]: ∀ (L : List (α × Bool)), (Uncycle (FreeGroup.reduce L)).IsRotated (FreeGroup.reduce (Uncycle L)) := by
-  intros L
-  induction Uncycle L with
-  | nil => sorry
-  | cons head tail ih =>
-    simp [ih]
-    sorry
-#check List.rec
 
 lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
     simp! [FreeGroup.toWord_mul]
@@ -307,12 +299,22 @@ lemma one_uncyc_lemma {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), �
     _ = FreeGroup.reduce (FreeGroup.reduce w.toWord) := by simp!
     _ = w.toWord := by simp!
 
-lemma same_same_but_different {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), ∀ p : α, ∀ b : Bool, one_uncyc ((p, b) :: w.toWord ++ [(p, !b)]) = Uncycle ((p, b) :: w.toWord ++ [(p, !b)]) := by
+lemma same_same_but_different {α : Type*} [DecidableEq α] : ∀ (w : FreeGroup α), ∀ p : α, ∀ b : Bool, Uncycle (one_uncyc ((p, b) :: w.toWord ++ [(p, !b)])) = Uncycle ((p, b) :: w.toWord ++ [(p, !b)]) := by
   intros w a b
   rw [<- one_uncyc_lemma]
   let L := w.toWord
   rw [<- if_conj_then_cyc]
-  sorry
+
+
+
+lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : FreeGroup α), /-uncyclic x.toWord,-/ (Uncycle ((g*x*g⁻¹).toWord)) ~r (FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord))) := by
+  intro g x
+  rw [form_of_conj]
+  let Lg := g.toWord
+  let Lx := x.toWord
+
+
+
 
 
 
@@ -322,4 +324,12 @@ lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : Fr
   rw [form_of_conj]
   simp
   let conju := FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord)
+  let r := conju.head (by sorry)
+
   sorry
+
+
+-- cycperm is a conj
+-- uncyc is a conj
+-- cycred is a conj
+-- use cyclically reduced things. formalize cycreduced, reduced.
