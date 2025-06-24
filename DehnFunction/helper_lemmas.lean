@@ -227,8 +227,10 @@ def CycReduce {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α �
 
 
 
-def IsRed {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Bool := FreeGroup.reduce L == L
+def IsRed {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := ∀ J : List (α × Bool), FreeGroup.Red L J → J = L
 
+lemma app_lists_eq_canc_r {k : Type*}: ∀ (P Q R : List k), P ++ Q = R ++ Q → P = R := by exact fun P Q R a ↦ List.append_cancel_right a
+lemma app_lists_eq_canc_l {k : Type*}: ∀ (P Q R : List k), Q ++ P = Q ++ R → P = R := by exact fun P Q R a ↦ List.append_cancel_left a
 
 lemma uncyc_is_sublist {α : Type*} [DecidableEq α]  (L : List (α × Bool)) : List.Sublist (Uncycle L) L := by sorry
 
@@ -236,22 +238,40 @@ lemma uncyc_of_red_is_red {α : Type*} [DecidableEq α] (L : List (α × Bool)) 
   intro hypo
   unfold IsRed at hypo
   unfold IsRed
-  simp; simp at hypo
-  cases L with
-  | nil =>
-    unfold Uncycle
-    simp
-  | cons head tail =>
-    cases tail with
-    | nil =>
-        simp [Uncycle]
-    | cons head tail =>
+  by_contra
+  expose_names; simp at h
+  rcases h with ⟨L', h₁,h₂⟩;
+  apply Uncycle_property at L; rcases L with ⟨U,V,p₁,p₂⟩
+  rw [<- FreeGroup.Red.append_append_left_iff U] at h₁
+  have tempp : FreeGroup.Red V V := by exact FreeGroup.Red.refl
+  have this_one : FreeGroup.Red (U ++ Uncycle L ++ V) (U ++ L' ++ V) := by apply FreeGroup.Red.append_append h₁ tempp
+  rw [<-p₁] at this_one
+  specialize hypo (U ++ L' ++ V)
+  have this₁ : (U ++ L' ++ V) = L := by exact hypo this_one
+  have this₂ : (U ++ L' ++ V) = (U ++ (Uncycle L) ++ V) := by rw [p₁] at this₁; exact this₁
+  have this₃ : L' = Uncycle L := by
+    apply app_lists_eq_canc_r at this₂
+    apply app_lists_eq_canc_l at this₂; exact this₂
+  contradiction
 
-      simp [Uncycle]
-      expose_names
-      sorry
 
-
+lemma equiv_of_reds {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRed L ↔ FreeGroup.reduce L = L := by
+  constructor
+  unfold IsRed; intro hypo
+  have this₁ : FreeGroup.Red L (FreeGroup.reduce L) := by exact FreeGroup.reduce.red
+  apply hypo at this₁; exact this₁
+  intro hypo
+  unfold IsRed;
+  intro J
+  intro are_rel_by_red
+  have this₂ : FreeGroup.Red J (FreeGroup.reduce J) := by exact FreeGroup.reduce.red
+  have RLJ : FreeGroup.Red L J := by exact are_rel_by_red
+  apply FreeGroup.reduce.eq_of_red at are_rel_by_red
+  rw [hypo] at are_rel_by_red
+  rw [<-are_rel_by_red] at this₂
+  apply FreeGroup.Red.sublist at RLJ
+  apply FreeGroup.Red.sublist at this₂
+  apply List.Sublist.antisymm RLJ this₂
 
 
 -- reduced word a₁a₂...a_n is cycreduced iff it is reduced and ¬(a₁a_n = 1)
@@ -336,7 +356,7 @@ def cycreduced {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := (
 
 lemma uncyclicmid {α : Type*} [DecidableEq α] (g x : FreeGroup α) (h : cycreduced x.toWord): (IsRed (g.toWord ++ x.toWord)) ∨ (IsRed (x.toWord ++ FreeGroup.invRev g.toWord)) := by sorry
 
-lemma technique {α : Type*} [DecidableEq α] : ∀ (P Q : List (α × Bool)), !IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I)∧(IsRed J)∧(IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
+lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧(IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
 
 lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)) (hp : IsRed P) (hq : IsRed Q) (hr : IsRed R) (h₁ : IsRed (P++Q)) (h₂ : IsRed (Q++R)) : (IsRed (P++Q++R)) := by sorry
 
@@ -348,19 +368,23 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
   let Lg := g.toWord
   let Lx := x.toWord
   have : g⁻¹.toWord = FreeGroup.invRev g.toWord := by exact FreeGroup.toWord_inv g
-  have key : FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (x.toWord)) := by sorry
+
+  have key : FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (x.toWord)) := by calc
+    FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ FreeGroup.invRev g.toWord)) := by exact congrArg FreeGroup.reduce (congrArg Uncycle (congrArg (HAppend.hAppend (g.toWord ++ x.toWord)) this))
+    _ = FreeGroup.reduce (Uncycle x.toWord) := by rw [uncyc_on_conj g.toWord x.toWord]
+
   rw [this]
   rw [uncyc_on_conj]
   cases g.toWord with
   | nil =>
-    simp
-    have : Uncycle x.toWord = FreeGroup.reduce (Uncycle x.toWord) := by apply uncyc_of_red_is_red (by sorry)
+      simp
+      have this₁ : IsRed x.toWord := by simp [(equiv_of_reds x.toWord)]
+      have this₂ : IsRed (Uncycle x.toWord) := by
+        simp [uncyc_of_red_is_red x.toWord this₁]
+      simp [equiv_of_reds x.toWord] at this₂
+      have this₃ : FreeGroup.reduce (Uncycle x.toWord) = (Uncycle x.toWord) := by exact (equiv_of_reds (Uncycle x.toWord)).mp this₂
+      rw [this₃]
   | cons head tail => sorry
-
-
-
-
-  sorry
 
 
 
