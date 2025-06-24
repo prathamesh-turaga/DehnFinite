@@ -366,6 +366,7 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
   let Lg := g.toWord
   let Lx := x.toWord
   have : g⁻¹.toWord = FreeGroup.invRev g.toWord := by exact FreeGroup.toWord_inv g
+  have gRed : IsRed g.toWord := by apply (equiv_of_reds g.toWord).mpr; exact FreeGroup.reduce_toWord g
 
   have key : FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (x.toWord)) := by calc
     FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord)) = FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ FreeGroup.invRev g.toWord)) := by exact congrArg FreeGroup.reduce (congrArg Uncycle (congrArg (HAppend.hAppend (g.toWord ++ x.toWord)) this))
@@ -373,7 +374,34 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
 
   rw [this]
   rw [uncyc_on_conj]
-  cases g.toWord with
+  /-
+  induction g.toWord with
+  | nil =>
+    simp
+    have this₁ : IsRed x.toWord := by simp [(equiv_of_reds x.toWord)]
+    have this₂ : IsRed (Uncycle x.toWord) := by
+      simp [uncyc_of_red_is_red x.toWord this₁]
+    simp [equiv_of_reds x.toWord] at this₂
+    have this₃ : FreeGroup.reduce (Uncycle x.toWord) = (Uncycle x.toWord) := by exact (equiv_of_reds (Uncycle x.toWord)).mp this₂
+    rw [this₃]
+    intro dd
+    aesop
+  | cons head tail ih =>
+    intro CC'
+    unfold cycreduced at CC'
+    have CC : cycreduced x.toWord := by exact CC'
+    rcases CC' with ⟨xisred, xisuncyclic⟩
+    rw [xisuncyclic]
+    apply (equiv_of_reds x.toWord).mp at xisred; simp only [xisred]
+    have xisred' : IsRed x.toWord := by exact(equiv_of_reds x.toWord).mpr xisred
+    have mylem : IsRed (head :: tail ++ x.toWord) ∨ IsRed (x.toWord ++ FreeGroup.invRev (head :: tail)) := by
+      exact uncyclicmid x.toWord (head :: tail) CC
+    -/
+
+
+
+
+  cases h_g: g.toWord with
   | nil =>
       simp
       have this₁ : IsRed x.toWord := by simp [(equiv_of_reds x.toWord)]
@@ -395,7 +423,23 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
     have mylem : IsRed (head :: tail ++ x.toWord) ∨ IsRed (x.toWord ++ FreeGroup.invRev (head :: tail)) := by
       exact uncyclicmid x.toWord (head :: tail) CC
     cases mylem with
-    | inl h => sorry
+    | inl h =>
+      by_cases h : IsRed (x.toWord ++ FreeGroup.invRev g.toWord)
+      rw [h_g] at h
+      rw [h_g] at gRed
+      have htinvred : IsRed (FreeGroup.invRev (head :: tail)) := by
+        apply (equiv_of_reds (FreeGroup.invRev (head :: tail))).mpr
+        rw [FreeGroup.reduce_invRev]
+        rw [equiv_of_reds] at gRed
+        rw [gRed]
+      · expose_names
+           -- how to prove, if we're taking cases over g.toWord, then gRed should carry over to (head :: tail), right?
+        have this₁ : IsRed (head :: tail ++ x.toWord ++ FreeGroup.invRev (head :: tail)) := by exact app_red_still_red (head :: tail) x.toWord (FreeGroup.invRev (head :: tail)) gRed xisred' htinvred h_1 h
+        rw [equiv_of_reds] at this₁
+        rw [this₁]
+        rw [uncyc_on_conj (head :: tail) x.toWord]
+        rw [xisuncyclic]
+      · sorry
     | inr h => sorry
 
 
