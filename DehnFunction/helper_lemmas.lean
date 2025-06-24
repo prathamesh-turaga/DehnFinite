@@ -98,6 +98,15 @@ lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)
 
 lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := by sorry
 
+lemma inv_of_app {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : FreeGroup.invRev (P++Q) = (FreeGroup.invRev Q) ++ (FreeGroup.invRev P) := by exact
+  FreeGroup.invRev_append
+
+lemma inv_of_inv {α : Type*} [DecidableEq α] (P : List (α × Bool)) : FreeGroup.invRev (FreeGroup.invRev P) = P := by exact
+  FreeGroup.invRev_invRev
+
+lemma distrib_reduce {α : Type*} [DecidableEq α] (P Q : List (α × Bool)): FreeGroup.reduce (P++Q) = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce (Q)) := by exact Eq.symm FreeGroup.reduce_append_reduce_reduce
+
+
 lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : FreeGroup α), (xhypo : cycreduced x.toWord) → (Uncycle ((g*x*g⁻¹).toWord)) ~r (FreeGroup.reduce (Uncycle (g.toWord ++ x.toWord ++ g⁻¹.toWord))) := by
   intro g x
   rw [form_of_conj]
@@ -172,12 +181,39 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
         rw [gRed]
       · expose_names
            -- how to prove, if we're taking cases over g.toWord, then gRed should carry over to (head :: tail), right?
+
         have this₁ : IsRed (head :: tail ++ x.toWord ++ FreeGroup.invRev (head :: tail)) := by exact app_red_still_red (head :: tail) x.toWord (FreeGroup.invRev (head :: tail)) gRed xisred' htinvred h_1 h
         rw [equiv_of_reds] at this₁
         rw [this₁]
         rw [uncyc_on_conj (head :: tail) x.toWord]
         rw [xisuncyclic]
-      · sorry
+      ·
+        have htinvred : IsRed (FreeGroup.invRev (head :: tail)) := by
+          apply (equiv_of_reds (FreeGroup.invRev (head :: tail))).mpr
+          rw [FreeGroup.reduce_invRev]
+          rw [equiv_of_reds] at gRed
+          rw [h_g] at gRed; rw [gRed]
+        apply technique at h
+        rcases h with ⟨I, J, K, hI, hJ, hK, hIK, hPrior, hPost⟩
+        rw [h_g] at hPost
+        have hPost' : (head :: tail) = (FreeGroup.invRev K) ++ J := by
+          calc
+            (head :: tail) = FreeGroup.invRev (FreeGroup.invRev (head :: tail)) := by exact Eq.symm (inv_of_inv (head :: tail))
+            _ = (FreeGroup.invRev (FreeGroup.invRev J ++ K)) := by rw [hPost]
+            _ = (FreeGroup.invRev K) ++ FreeGroup.invRev (FreeGroup.invRev J) := by exact inv_of_app (FreeGroup.invRev J) K
+            _ = (FreeGroup.invRev K) ++ J := by simp
+        rw [hPost, hPost', hPrior]
+        have convenience₁ : (FreeGroup.invRev K ++ J ++ (I ++ J) ++ (FreeGroup.invRev J ++ K)) = (FreeGroup.invRev K ++ J ++ I ++ J ++ (FreeGroup.invRev J) ++ K) := by simp
+        have convenience₂ : FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I ++ J ++ (FreeGroup.invRev J) ++ K) = FreeGroup.reduce (FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I) ++ FreeGroup.reduce (J ++ (FreeGroup.invRev J)) ++ FreeGroup.reduce K) := by calc
+          FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I ++ J ++ (FreeGroup.invRev J) ++ K) = FreeGroup.reduce ((FreeGroup.invRev K ++ J ++ I) ++ (J ++ (FreeGroup.invRev J)) ++ (K)) := by simp
+          _ = FreeGroup.reduce (FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I) ++ FreeGroup.reduce (J ++ (FreeGroup.invRev J) ++ K)) := by
+            simp [FreeGroup.reduce_append_reduce_reduce]
+          _ = FreeGroup.reduce (FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I) ++ FreeGroup.reduce (FreeGroup.reduce (J ++ (FreeGroup.invRev J)) ++ FreeGroup.reduce K)) := by simp [FreeGroup.reduce_append_reduce_reduce]
+          _ = FreeGroup.reduce (FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I) ++ FreeGroup.reduce ([] ++ FreeGroup.reduce K)) := by sorry
+          _ = FreeGroup.reduce (FreeGroup.reduce (FreeGroup.invRev K ++ J ++ I) ++ FreeGroup.reduce (J ++ (FreeGroup.invRev J)) ++ FreeGroup.reduce K) := by sorry
+        sorry
+        sorry
+        sorry
     | inr h => sorry
 
 
