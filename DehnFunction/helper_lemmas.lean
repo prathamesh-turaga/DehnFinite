@@ -94,6 +94,7 @@ lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) 
 -- needed
 
 lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧(IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
+#check FreeGroup.reduce_toWord
 -- extremely important
 
 lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)) (hp : IsRed P) (hq : IsRed Q) (hr : IsRed R) (h₁ : IsRed (P++Q)) (h₂ : IsRed (Q++R)) : (IsRed (P++Q++R)) := by sorry
@@ -138,8 +139,53 @@ lemma distrib_reduce {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)): 
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce (FreeGroup.reduce R)) := by simp!
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce R) := by simp [inv_of_inv]
 
-lemma uncyc_then_comm_lists {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P++Q) → cycreduced (Q++P) := by sorry
+lemma sublistisred {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed P): List.Sublist Q P →  IsRed Q := by sorry
+-- omar has done
+
+lemma red_at_join_nonempty_both {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2  → IsRed (P ++ Q) := by
+  induction P generalizing Q with
+  | nil =>
+    by_contra
+    aesop
+  | cons head tail ih =>
+    specialize ih Q
+    have this₁ : (head :: tail) = [head]++tail := by simp!
+    rw [this₁] at hP
+    have tail_is_sublist : List.Sublist tail ([head] ++ tail) := by simp!
+    have prelim : IsRed tail := by exact sublistisred ([head] ++ tail) tail hP tail_is_sublist
+    simp [prelim, hQ] at ih
+    have case_maker : tail = [] ∨ tail ≠ [] := by exact eq_or_ne tail []
+    cases case_maker with
+    | inl h =>
+      rw [h] at hP; simp at hP
+      simp [h]
+      rw [equiv_of_reds]
+      intros hypo₁
+      sorry --( done easily by porting to vivek's inductive definition )
+
+    | inr h =>
+      simp [h, h₂] at ih
+      have tail_is_the_player : ((head :: tail).getLast h₁) = (tail.getLast h) := by exact List.getLast_cons h
+      rw [tail_is_the_player]
+      intro hypo_last
+      simp [hypo_last] at ih
+      sorry -- ( done easily by porting to vivek's inductive definition )
+
+
+
+
+lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by
+  induction P with
+  | nil => sorry
+  | cons head tail ih =>
+    intro hd hypo
+    specialize ih hd; specialize ih
+    sorry
 -- extremely important
+
+lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by sorry
+-- need this exactly in proof, don't remove for now.
+
 
 lemma isredsubl {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : IsRed (P ++ Q) → (IsRed P) ∧ (IsRed Q) := by sorry
 -- is done by vivek
@@ -221,7 +267,7 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
           simp [hPrior] at xisred'; exact xisred'
         have mini_r₂ : Uncycle (I++J) = (I++J) := by simp [hPrior] at xisuncyclic; exact xisuncyclic
         have r₁ : cycreduced (I ++ J) := by unfold cycreduced; exact And.symm ⟨mini_r₂, mini_r₁⟩
-        have r₂ : cycreduced (J ++ I) := by exact uncyc_then_comm_lists I J r₁
+        have r₂ : cycreduced (J ++ I) := by exact uncyc_then_comm_lists₂ I J r₁
         have mini_r₂ : IsRed (J ++ I) := by unfold cycreduced at r₂; exact r₂.1
 
         rw [<-List.append_assoc]
@@ -286,7 +332,7 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
         rw [hPrior] at htinvred
         rw [inv_of_app] at htinvred
         rw [hPost] at xisred xisred' xisuncyclic CC ⊢
-        apply uncyc_then_comm_lists at CC
+        apply uncyc_then_comm_lists₂ at CC
         unfold cycreduced at CC
         have JinvIsRed : IsRed (FreeGroup.invRev J) := by
           rw [equiv_of_reds] at hJ ⊢
@@ -295,7 +341,11 @@ lemma uncyc_red_isrotated_red_uncyc {α : Type*} [DecidableEq α] : ∀ (g x  : 
         have isred_first_three : IsRed (I ++ K ++ FreeGroup.invRev J) := by apply app_red_still_red I K (FreeGroup.invRev J) hI hK JinvIsRed hIK CC.1
         have convenience₂ : (I ++ (K ++ (FreeGroup.invRev J ++ FreeGroup.invRev I))) = ((I ++ K ++ FreeGroup.invRev J) ++ FreeGroup.invRev I) := by simp
         rw [convenience₂]
-        have mamma_mia : IsRed (I ++ K ++ (FreeGroup.invRev J) ++ (FreeGroup.invRev I)) := by apply app_red_still_red (I ++ K) (FreeGroup.invRev J) (FreeGroup.invRev I) hIK JinvIsRed (sorry) isred_first_three htinvred
+        have IinvIsRed : IsRed (FreeGroup.invRev I) := by
+          rw [equiv_of_reds] at hI ⊢
+          rw [FreeGroup.reduce_invRev]
+          rw [hI]
+        have mamma_mia : IsRed (I ++ K ++ (FreeGroup.invRev J) ++ (FreeGroup.invRev I)) := by apply app_red_still_red (I ++ K) (FreeGroup.invRev J) (FreeGroup.invRev I) hIK JinvIsRed IinvIsRed isred_first_three htinvred
         rw [equiv_of_reds] at mamma_mia
         rw [mamma_mia]
 
