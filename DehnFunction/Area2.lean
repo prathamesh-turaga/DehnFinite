@@ -6,6 +6,7 @@ import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
 import DehnFunction.Area1
 import DehnFunction.helper_lemmas
+import DehnFunction.Conj_cyc
 
 
 

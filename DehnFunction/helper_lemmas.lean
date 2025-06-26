@@ -1,6 +1,6 @@
 import DehnFunction.Area1
 import DehnFunction.Cyc_conj
-
+import DehnFunction.IsRed
 
 
 
@@ -12,9 +12,6 @@ def CycReduce {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α �
 -- Takes a list and returns cyclic reduction of that list's freely-reduced form.
 
 
-
-
-def IsRed {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := ∀ J : List (α × Bool), FreeGroup.Red L J → J = L
 
 lemma app_lists_eq_canc_r {k : Type*}: ∀ (P Q R : List k), P ++ Q = R ++ Q → P = R := by exact fun P Q R a ↦ List.append_cancel_right a
 lemma app_lists_eq_canc_l {k : Type*}: ∀ (P Q R : List k), Q ++ P = Q ++ R → P = R := by exact fun P Q R a ↦ List.append_cancel_left a
@@ -73,9 +70,6 @@ lemma equiv_of_reds {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRe
 
 --  have other₁ : True := sorry
 --  simp [this₁, this₂, that₁, that₂, that₃]
-
-
-
 
 
 
