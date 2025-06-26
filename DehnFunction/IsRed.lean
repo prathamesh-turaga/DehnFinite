@@ -6,12 +6,8 @@ open FreeGroup
 
 variable {α : Type*} [DecidableEq α] {a b : α × Bool} (l l1 l2 : List (α × Bool))
 
-theorem Red.append_left_right (l2' l3 : List (α × Bool)) (hl2 : Red l2 l2' ∧ l2' ≠ l2) :
-  Red (l1++l2++l3) (l1++(l2')++l3) := by
-  apply Red.append_append
-  apply Red.append_append
-  rfl; exact hl2.1; rfl
-
+omit [DecidableEq α] in
+/--If `[a,b]` reduces to `[]`, then `a = b⁻¹`-/
 lemma Red.two_nil (h : Red [a,b] []) :
   a.1 = b.1 ∧ a.2 = !b.2 := by
   let (x,y) := a
@@ -19,6 +15,8 @@ lemma Red.two_nil (h : Red [a,b] []) :
   simp at h
   simp [← h]
 
+omit [DecidableEq α] in
+/--If `a = b⁻¹`, then `[a,b]` reduces to `[]`-/
 lemma Red.two_nil_if_red_pair (h : a.1 = b.1 ∧ a.2 = !b.2) :
   Red [a,b] [] := by
   let (x,y) := a
@@ -29,9 +27,13 @@ lemma Red.two_nil_if_red_pair (h : a.1 = b.1 ∧ a.2 = !b.2) :
   rw [h1]
   exact Red.cons_nil_iff_singleton.mpr (Red.singleton_iff.mpr rfl)
 
+omit [DecidableEq α] in
+/--`[a,b]` reduces to `[]` iff `a = b⁻¹-/
 theorem Red.two_nil_iff : Red [a,b] [] ↔ a.1 = b.1 ∧ a.2 = !b.2 :=
   ⟨fun h => Red.two_nil h,fun h => Red.two_nil_if_red_pair h⟩
 
+omit [DecidableEq α] in
+/--If `l₁` reduces to `l₂` and `l₁.length = l₂.length`, then `l₁ = l₂`-/
 theorem Red.length_eq_iff_eq (h1 : Red l1 l2) (h2 : l1.length = l2.length) :
   l1 = l2 := by
   induction h1 using Relation.ReflTransGen.rec with
@@ -50,6 +52,8 @@ theorem Red.length_eq_iff_eq (h1 : Red l1 l2) (h2 : l1.length = l2.length) :
       rw [← h2] at h4
       linarith
 
+omit [DecidableEq α] in
+/--If `[a,b]` reduces to `l` and `l.length < 2`, then `l = []`-/
 lemma Red.two_nil_if_length_lt_two (h : Red [a,b] l) (hl : l.length < 2) :
   l = [] := by
   have h1 := Red.length h
@@ -67,6 +71,8 @@ lemma Red.two_nil_if_length_lt_two (h : Red [a,b] l) (hl : l.length < 2) :
   simp at hn
   exact hn
 
+omit [DecidableEq α] in
+/--If `[a,b]` doesn't reduce to itself, it reduces to `[]`-/
 lemma Red.two_nil_if_not_self (h : Red [a,b] l) (hl : l ≠ [a,b]) :
   l = [] := by
   have h1 := Red.length_le h
@@ -81,6 +87,7 @@ lemma Red.two_nil_if_not_self (h : Red [a,b] l) (hl : l ≠ [a,b]) :
     contradiction
   · exact two_nil_if_length_lt_two l h h2
 
+/--`[a,b]` either reduces to `[]` with `a = b⁻¹`, or it reduces to itself-/
 theorem Red.two_if (h : Red [a,b] l) :
   (l = [] ∧ a.1 = b.1 ∧ a.2 = !b.2) ∨ (l = [a,b]) := by
   by_cases h1 : l = [a,b]
@@ -91,23 +98,29 @@ theorem Red.two_if (h : Red [a,b] l) :
     have h3 := two_nil h
     exact ⟨h2,h3⟩
 
+/--If `[a,b]` doesn't reduce to itself, it reduces to `[]` and `a = b⁻¹`-/
 lemma Red.two_nil_and_red_pair_if_not_self (h1 : Red [a,b] l) (h2 : l ≠ [a,b]) :
   l = [] ∧ a.1 = b.1 ∧ a.2 = !b.2 := by
   rcases two_if l h1 with h1|h1
   · exact h1
   · contradiction
 
+omit [DecidableEq α] in
+/--`Red.Step` is irrefl, i.e. no list `l` reduces to itself in one step-/
 lemma Red.Step.irrefl : ¬Red.Step l l := by
   intro h
   have h1 := Red.Step.length h
   linarith
 
+omit [DecidableEq α] in
+/--If `l₁` reduces to `l₂` in one step, then `l₁ ≠ l₂`-/
 lemma Red.Step.not_self (h : Red.Step l1 l2) : l1 ≠ l2 := by
   intro h1
   have h2 := Red.Step.length h
   rw [h1] at h2
   linarith
 
+/--If `l₁` reduces to `l₂` and `l₁ ≠ l₂`, then there is a list `p` that `l₁` reduces to in one step-/
 lemma Red.not_self_imp_step (h1 : Red l1 l2) (h2 : l1 ≠ l2) :
   ∃ p, Red.Step l1 p := by
   induction h1 with
@@ -119,6 +132,8 @@ lemma Red.not_self_imp_step (h1 : Red l1 l2) (h2 : l1 ≠ l2) :
       use c
     · exact ih hl
 
+omit [DecidableEq α] in
+/--If `l` contains a reducible pair, then `l` reduces to some list `l'` in one step-/
 lemma Red.Step.exists_if_red_pair_exists (h : ∃ (l1 l2 : List (α×Bool)) (x : α) (b : Bool), l = (l1 ++ (x, b) :: (x, !b) :: l2)) :
   (∃ l', Red.Step l l') := by
   rcases h with ⟨l1,l2,a,b,h⟩
@@ -126,6 +141,8 @@ lemma Red.Step.exists_if_red_pair_exists (h : ∃ (l1 l2 : List (α×Bool)) (x :
   rw [h]
   simp
 
+omit [DecidableEq α] in
+/--If `l` reduces to some list `l'` in one step, then `l` contains a reducible pair-/
 lemma Red.Step.red_pair_exists_if_step : (∃ l', Red.Step l l')
   → ∃ (l1 l2 : List (α×Bool)) (x : α) (b : Bool), l = (l1 ++ (x, b) :: (x, !b) :: l2) := by
   intro h
@@ -138,14 +155,17 @@ lemma Red.Step.red_pair_exists_if_step : (∃ l', Red.Step l l')
     use x
     use b
 
+/--`l` contains a reducible pair iff `l` reduces to some list `l'` in one step-/
 lemma Red.Step.exists_iff_red_pair_exists {α : Type*} [DecidableEq α] (l : List (α × Bool)) :
   (∃ l', Red.Step l l') ↔ ∃ (l1 l2 : List (α×Bool)) (x : α) (b : Bool), l = (l1 ++ (x, b) :: (x, !b) :: l2) :=
   ⟨Red.Step.red_pair_exists_if_step l,Red.Step.exists_if_red_pair_exists l⟩
 
+/--A word is reduced if `∀ J : List (α × Bool), Red l J → J = l`, i.e. the word can only further reduce to itself-/
 def IsRed : Prop := ∀ J : List (α × Bool), FreeGroup.Red l J → J = l
 
 namespace IsRed
 
+/--If `l` is reduced, then `reduce l = l`-/
 theorem iff_reduce_self : IsRed l ↔ FreeGroup.reduce l = l := by
   constructor
   unfold IsRed; intro hypo
@@ -164,8 +184,9 @@ theorem iff_reduce_self : IsRed l ↔ FreeGroup.reduce l = l := by
   apply FreeGroup.Red.sublist at this₂
   apply List.Sublist.antisymm RLJ this₂
 
-theorem iff_noStep {α : Type*} [DecidableEq α] (l : List (α × Bool)) :
-  IsRed l ↔ ∀ l', ¬Red.Step l l' := by
+omit [DecidableEq α] in
+/--`l` is reduced iff `l` can't be reduced any further in one step-/
+theorem iff_noStep : IsRed l ↔ ∀ l', ¬Red.Step l l' := by
   constructor
   · intro h p hp
     have h1 : l ≠ p := (Red.Step.not_self l p hp)
@@ -182,17 +203,21 @@ theorem iff_noStep {α : Type*} [DecidableEq α] (l : List (α × Bool)) :
       specialize h c
       contradiction
 
+omit [DecidableEq α] in
+/--`[]` is reduced-/
 lemma nil : IsRed ([] : List (α×Bool)) := by
   intro l hl
   exact Red.nil_iff.mp hl
 
+omit [DecidableEq α] in
+/--A singleton list is always reduced-/
 theorem singleton : IsRed [a] := by
   dsimp [IsRed]
   intro l
   exact Red.singleton_iff.mp
 
-theorem two (hab : IsRed [a,b]) :
-  (a.1 ≠ b.1 ∨ a.2 = b.2) := by
+/--If `[a,b]` is reduced, then `a ≠ b⁻¹`-/
+theorem two (hab : IsRed [a,b]) : (a.1 ≠ b.1 ∨ a.2 = b.2) := by
   by_contra h
   push_neg at h
   rw [← Bool.eq_not] at h
@@ -205,6 +230,7 @@ theorem two (hab : IsRed [a,b]) :
   apply hab at h1
   contradiction
 
+/--If `a = b⁻¹`, then `[a,b]` is not reduced-/
 lemma two_not_if_red_pair (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   ¬IsRed [a,b] := by
   contrapose hab
@@ -229,6 +255,7 @@ lemma two_if_not_red_pair' (hab : a.2 = b.2) :
   rw [← Bool.eq_not_iff]
   exact (Red.two_nil_and_red_pair_if_not_self p hp1 hp2).2.2
 
+/--`[a,b]` is reduced iff `a ≠ b⁻¹`-/
 theorem two_iff_not_red_pair : IsRed [a,b] ↔ (a.1 ≠ b.1 ∨ a.2 = b.2) := by
   constructor
   · intro h
@@ -238,6 +265,8 @@ theorem two_iff_not_red_pair : IsRed [a,b] ↔ (a.1 ≠ b.1 ∨ a.2 = b.2) := by
     · exact two_if_not_red_pair h
     · exact two_if_not_red_pair' h
 
+omit [DecidableEq α] in
+/--Prefix of a reduced word is reduced-/
 lemma prefix_IsRed (hL : IsRed (l1++l2)) : IsRed l1 := by
   rw [IsRed] at *
   intro P hP
@@ -246,6 +275,8 @@ lemma prefix_IsRed (hL : IsRed (l1++l2)) : IsRed l1 := by
   apply hL at h1
   exact List.append_cancel_right h1
 
+omit [DecidableEq α] in
+/--Suffix of a reduced word is reduced-/
 lemma suffix_IsRed (hL : IsRed (l1++l2)) : IsRed l2 := by
   rw [IsRed] at *
   intro P hP
@@ -254,16 +285,21 @@ lemma suffix_IsRed (hL : IsRed (l1++l2)) : IsRed l2 := by
   apply hL at h1
   exact List.append_cancel_left h1
 
+omit [DecidableEq α] in
+/--Infix of a reduced word is reduced-/
 theorem infix_IsRed (l3 : List (α×Bool)) (hL : IsRed (l1++l3++l2)) : IsRed l3 := by
   apply suffix_IsRed l1 l3
   exact prefix_IsRed (l1++l3) l2 hL
 
+omit [DecidableEq α] in
+/--Tail of a reduced word is reduced-/
 lemma tail (h : IsRed (a::l)) :
   IsRed l := by
   have h1 : a::l = [a]++l := rfl
   rw [h1] at h
   exact suffix_IsRed [a] l h
 
+/--If `a::b::l` is reduced, then `b::l` is reduced and `a ≠ b⁻¹`-/
 theorem cons_cons (h : IsRed (a::b::l)) :
   IsRed (b::l) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) := by
   induction l with
@@ -293,12 +329,14 @@ theorem cons_cons (h : IsRed (a::b::l)) :
       simp at h5
       linarith
 
+/--If `a::l` is reduced, then `l` is reduced and `a ≠ (l.head)⁻¹`-/
 theorem cons (hl : l ≠ []) (h : IsRed (a::l)) :
   IsRed l ∧ (a.1 ≠ (l.head hl).1 ∨ a.2 = (l.head hl).2) := by
   match l with
   | [] => contradiction
   | b::bs => exact cons_cons bs h
 
+/--`l` is not reduced if its suffix is a reducible pair-/
 lemma not_if_red_pair_suffix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   ¬IsRed (l++[a,b]) := by
   induction l with
@@ -308,6 +346,7 @@ lemma not_if_red_pair_suffix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
     push_neg at *
     exact tail (xs ++ [a, b]) ih
 
+/--`l` is not reduced if its prefix is a reducible pair-/
 lemma not_if_red_pair_prefix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   ¬IsRed ([a,b]++l) := by
   induction l using List.reverseRecOn with
@@ -318,7 +357,8 @@ lemma not_if_red_pair_prefix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
     push_neg at *
     exact prefix_IsRed ([a, b] ++ l) [x] ih
 
-lemma not_if_red_pair_infix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
+/--`l` is not reduced if it contains is a reducible pair-/
+lemma not_if_contains_red_pair (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   ¬IsRed (l1++[a,b]++l2) := by
   match l1 with
   | [] => simp; exact not_if_red_pair_prefix l2 hab
@@ -334,6 +374,7 @@ lemma not_if_red_pair_infix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
       push_neg at *
       exact prefix_IsRed ([x] ++ xs ++ [a, b] ++ ys) [y] ih
 
+/--`l` is not reduced iff it contains a reducible pair-/
 theorem not_iff_red_pair_exists :
   ¬IsRed l ↔ ∃ (l1 l2 : List (α×Bool)) (x : α) (b : Bool), l = (l1 ++ (x, b) :: (x, not b) :: l2) := by
   constructor
@@ -349,7 +390,7 @@ theorem not_iff_red_pair_exists :
     set y := (a,!b) with hy
     have : l1 ++ x :: y :: l2 = l1++[x,y]++l2 := by simp
     rw [this]
-    exact not_if_red_pair_infix l1 l2 (by simp [hx,hy])
+    exact not_if_contains_red_pair l1 l2 (by simp [hx,hy])
 
 theorem cons_if_not_red_pair (hl : IsRed (b::l)) (hab : a.1 ≠ b.1) :
   IsRed (a::b::l) := by
@@ -397,8 +438,28 @@ theorem cons_if_not_red_pair' {α : Type*} [DecidableEq α] (a b : α × Bool) (
       simp at hl
       exact hl.2
 
+/--`a::b::l` is reduced iff `b::l` is reduced and `a ≠ b⁻¹`-/
+theorem cons_iff_not_red_pair {α : Type*} [DecidableEq α] (a b : α × Bool) (l : List (α × Bool)) :
+  IsRed (a::b::l) ↔ IsRed (b::l) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) := by
+  constructor
+  · intro h
+    constructor
+    · exact tail (b :: l) h
+    · apply two_iff_not_red_pair.mp
+      have : a::b::l = [a,b]++l := by simp
+      rw [this] at h
+      exact prefix_IsRed [a, b] l h
+  · intro ⟨h1,h2⟩
+    cases h2 with
+    | inl h2 => exact cons_if_not_red_pair l h1 h2
+    | inr h2 => exact cons_if_not_red_pair' a b l h1 h2
+
 end IsRed
 
+/--The inductive version of `IsRed`:
+* `[]` is reduced
+* Singleton lists are reduced
+* `a::b::as` is reduced if `b::as` is reduced and `a ≠ b⁻¹`-/
 def IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop :=
   match L with
   | [] => True
@@ -406,6 +467,7 @@ def IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop
   | a::b::as =>
     IsRed_inductive (b::as) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2)
 
+/--`IsRed` and its inductive version are equivalent-/
 theorem IsRed.iff_IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRed L ↔ IsRed_inductive L := by
   constructor
   · intro h
