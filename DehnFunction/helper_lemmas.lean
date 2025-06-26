@@ -3,6 +3,7 @@ import DehnFunction.Cyc_conj
 
 
 
+
 -- STUFF FROM AREA2
 
 
@@ -93,7 +94,7 @@ def cycreduced {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := (
 lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) (h : cycreduced L₁): (IsRed (L₂ ++ L₁)) ∨ (IsRed (L₁ ++ FreeGroup.invRev L₂)) := by sorry
 -- needed
 
-lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧(IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
+lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧ (J ≠ []) ∧ (IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
 #check FreeGroup.reduce_toWord
 -- extremely important
 
@@ -137,8 +138,6 @@ lemma distrib_reduce {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)): 
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce (FreeGroup.reduce R)) := by simp!
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce R) := by simp [inv_of_inv]
 
-lemma sublistisred {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed P): List.Sublist Q P →  IsRed Q := by sorry
--- omar has done
 
 lemma isredsubl {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed (P ++ Q)) : (IsRed P) ∧ (IsRed Q) := by sorry
 
@@ -364,7 +363,7 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
           · -- htx red but not xt⁻¹h⁻¹, so...? technique on?
             -- apply technique, then inside take cases on x content. Need : sublist of red is red. cases on x and J
             apply technique at hh
-            rcases hh with ⟨I, J, K, hI, hJ, hK, hIK, hxLike, hHTinvLike⟩
+            rcases hh with ⟨I, J, K, hI, hJ, jNE, hK, hIK, hxLike, hHTinvLike⟩
             -- here's how to get the inv of an append :
             have hHTLike : (head :: tail) = (FreeGroup.invRev K) ++ J := by
               have temp : FreeGroup.invRev (FreeGroup.invRev (head :: tail)) = FreeGroup.invRev (FreeGroup.invRev J ++ K) := by exact congrArg FreeGroup.invRev hHTinvLike
@@ -447,7 +446,7 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
           · -- xt⁻¹h⁻¹ red but not htx, so...? technique on?
             -- apply technique, then inside take cases on x content. Need : sublist of red is red. cases on x and J
             apply technique at hh
-            rcases hh with ⟨I, J, K, hI, hJ, hK, hIK, hHTLike, hxLike⟩
+            rcases hh with ⟨I, J, K, hI, hJ, jNE, hK, hIK, hHTLike, hxLike⟩
 
             -- here's how to get the inv of an append :
             have hHTinvLike : FreeGroup.invRev (head :: tail) = (FreeGroup.invRev J) ++ (FreeGroup.invRev I) := by
@@ -467,7 +466,42 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
             exact xisred'
 
 
-
+lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) (hr : cycreduced r) (hy : cycreduced y) (hg : IsRed g) (hypo : r = FreeGroup.reduce (g ++ y ++ (FreeGroup.invRev g))) : r ~r y := by
+  have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy
+  have cases_y : y = [] ∨ y ≠ [] := by exact eq_or_ne y []
+  have cases_g : g = [] ∨ g ≠ [] := by exact eq_or_ne g []
+  cases cases_y with
+  | inl y_nil =>
+    rw [y_nil, List.append_nil, cancel_inverses] at hypo
+    simp [hypo, y_nil]
+  | inr y_content =>
+      cases cases_g with
+      | inl g_nil =>
+        simp [g_nil, List.nil_append] at hypo
+        unfold cycreduced at hy; rw [equiv_of_reds] at hy
+        rw [hy.1] at hypo
+        aesop
+      | inr g_content =>
+        cases cases₁ with
+        | inl IsRed_gy =>
+          have yginvIsRed : IsRed (y ++ FreeGroup.invRev g) ∨ ¬ IsRed (y ++ FreeGroup.invRev g) := by exact Classical.em (IsRed (y ++ FreeGroup.invRev g))
+          cases yginvIsRed with
+          | inl h =>
+            -- both combos reduced
+            unfold cycreduced at hy hr
+            sorry
+          | inr h =>
+            -- yg⁻¹ not reduced, apply technique
+            sorry
+        | inr IsRed_yginv =>
+          have gyIsRed : IsRed (g ++ y) ∨ ¬ IsRed (g ++ y) := by exact Classical.em (IsRed (g ++ y))
+          cases gyIsRed with
+          | inl h =>
+            -- both combos reduced, copy from above
+            sorry
+          | inr h =>
+            -- gy not reduced, apply technique
+            sorry
 
 
 lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
