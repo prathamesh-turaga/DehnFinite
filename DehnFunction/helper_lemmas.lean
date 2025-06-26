@@ -488,21 +488,67 @@ lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) 
           cases yginvIsRed with
           | inl h =>
             -- both combos reduced
+            have ginvIsRed : IsRed (FreeGroup.invRev g) := by exact inv_of_red g hg
             unfold cycreduced at hy hr
-            sorry
+            have magic : IsRed (g ++ y ++ (FreeGroup.invRev g)) := by apply app_red_still_red g y (FreeGroup.invRev g) hg hy.1 ginvIsRed IsRed_gy h y_content
+            rw [equiv_of_reds] at magic
+            rw [magic] at hypo
+            have contra₁ : Uncycle r = y := by
+              rw [hypo, uncyc_on_conj, hy.2]
+            rw [hr.2] at contra₁
+            rw [contra₁]
           | inr h =>
             -- yg⁻¹ not reduced, apply technique
+            have ginvIsRed : IsRed (FreeGroup.invRev g) := by exact inv_of_red g hg
+            unfold cycreduced at hr hy
+            apply technique y (FreeGroup.invRev g) hy.1 ginvIsRed at h
+            rcases h with ⟨I,J,K,hI,hJ,J_content,hK,hIK,yLike,ginvLike⟩
+            rw [yLike] at hy IsRed_gy
+            rw [ginvLike] at ginvIsRed
+            rw [<-inv_of_inv g, ginvLike, inv_of_app, inv_of_inv] at hg
+            have gLike : g = FreeGroup.invRev K ++ J := by
+              rw [<- inv_of_inv g, ginvLike, inv_of_app, inv_of_inv]
+            rw [ginvLike, gLike,yLike, <-List.append_assoc, <-List.append_assoc] at hypo
+            rw [gLike, <-List.append_assoc] at IsRed_gy
+            have convenience₁ : (FreeGroup.invRev K ++ J ++ I) ++ J ++ FreeGroup.invRev J ++ (K) = FreeGroup.invRev K ++ J ++ I ++ J ++ FreeGroup.invRev J ++ K := by simp
+            rw [convenience₁] at hypo
+            rw [distrib_reduce, FreeGroup.reduce_append_reduce_reduce] at hypo
+            -- Now bad cases will likely begin
             sorry
         | inr IsRed_yginv =>
           have gyIsRed : IsRed (g ++ y) ∨ ¬ IsRed (g ++ y) := by exact Classical.em (IsRed (g ++ y))
           cases gyIsRed with
           | inl h =>
-            -- both combos reduced, copy from above
-            sorry
+            -- both combos reduced, copied from above
+            have ginvIsRed : IsRed (FreeGroup.invRev g) := by exact inv_of_red g hg
+            unfold cycreduced at hy hr
+            have magic : IsRed (g ++ y ++ (FreeGroup.invRev g)) := by
+              apply app_red_still_red g y (FreeGroup.invRev g) hg hy.1 ginvIsRed h IsRed_yginv y_content
+            rw [equiv_of_reds] at magic
+            rw [magic] at hypo
+            have contra₁ : Uncycle r = y := by
+              rw [hypo, uncyc_on_conj, hy.2]
+            rw [hr.2] at contra₁
+            rw [contra₁]
           | inr h =>
             -- gy not reduced, apply technique
+            have ginvIsRed : IsRed (FreeGroup.invRev g) := by exact inv_of_red g hg
+            unfold cycreduced at hr hy
+            apply technique g y hg hy.1 at h
+            rcases h with ⟨I,J,K,hI,hJ,J_content,hK,hIK,gLike,yLike⟩
+            rw [yLike] at hy IsRed_yginv
+            rw [gLike] at hg
+            rw [<-inv_of_inv g, gLike, inv_of_app, inv_of_inv] at ginvIsRed
+            have ginvLike : FreeGroup.invRev g = (FreeGroup.invRev J ++ FreeGroup.invRev I) := by
+              rw [<- inv_of_inv g, gLike, inv_of_app, inv_of_inv]
+            rw [ginvLike, gLike,yLike, <-List.append_assoc, <-List.append_assoc] at hypo
+            rw [gLike] at IsRed_yginv
+            have convenience₁ : (I ++ J ++ FreeGroup.invRev J ++ K ++ FreeGroup.invRev J ++ FreeGroup.invRev I) = (I) ++ J ++ FreeGroup.invRev J ++ (K ++ FreeGroup.invRev J ++ FreeGroup.invRev I) := by simp
+            rw [convenience₁] at hypo
+            rw [distrib_reduce, FreeGroup.reduce_append_reduce_reduce, <-List.append_assoc, <-List.append_assoc] at hypo
+            -- Now bad cases will likely begin
             sorry
-
+#check uncyc_of_red_is_red
 
 lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
   intros g y
