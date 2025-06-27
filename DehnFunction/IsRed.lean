@@ -415,7 +415,7 @@ theorem cons_if_not_red_pair (hl : IsRed (b::l)) (hab : a.1 ≠ b.1) :
       simp at hl
       exact hl.2
 
-theorem cons_if_not_red_pair' {α : Type*} [DecidableEq α] (a b : α × Bool) (l : List (α × Bool)) (hl : IsRed (b::l)) (hab : a.2 = b.2) :
+theorem cons_if_not_red_pair' (hl : IsRed (b::l)) (hab : a.2 = b.2) :
   IsRed (a::b::l) := by
   induction l generalizing a b with
   | nil => exact two_if_not_red_pair' hab
@@ -452,7 +452,13 @@ theorem cons_cons_iff_not_red_pair :
   · intro ⟨h1,h2⟩
     cases h2 with
     | inl h2 => exact cons_if_not_red_pair l h1 h2
-    | inr h2 => exact cons_if_not_red_pair' a b l h1 h2
+    | inr h2 => exact cons_if_not_red_pair' l h1 h2
+
+/--`a::l` is reduced iff `l` is reduced and `a ≠ (l.head)⁻¹`-/
+theorem cons_iff_not_red_pair (hl : l ≠ []) : IsRed (a::l) ↔ IsRed (l) ∧ (a.1 ≠ (l.head hl).1 ∨ a.2 = (l.head hl).2) := by
+  match l with
+  | [] => contradiction
+  | b::bs => exact cons_cons_iff_not_red_pair bs
 
 end IsRed
 
@@ -488,12 +494,7 @@ theorem IsRed.iff_IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α ×
       have h1 := ih h.1
       rcases h.2 with h2|h2
       · exact cons_if_not_red_pair as h1 h2
-      · exact cons_if_not_red_pair' a b as h1 h2
-
-theorem IsRed.cons_iff_not_red_pair (hl : l ≠ []) : IsRed (a::l) ↔ IsRed (l) ∧ (a.1 ≠ (l.head hl).1 ∨ a.2 = (l.head hl).2) := by
-  match l with
-  | [] => contradiction
-  | b::bs => exact cons_cons_iff_not_red_pair bs
+      · exact cons_if_not_red_pair' as h1 h2
 
 omit [DecidableEq α] in
 lemma List.concat_if_not_empty (l : List α) (hl : l ≠ []) : l = l.dropLast++[l.getLast hl] := by
@@ -509,19 +510,11 @@ def IsRed_TR (L : List (α×Bool)) : Prop :=
     if has : as = [] then True
     else if (a.1 ≠ (as.getLast has).1 ∨ a.2 = (as.getLast has).2) then iha
     else False)
-  -- termination_by L.length
-  -- decreasing_by
-    -- List.reverseRecOn as
-    -- (True)
-    -- (fun _ b _ => (IsRed_TR as) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2))
 
 lemma IsRed_TR.nil {α : Type*} [DecidableEq α] : IsRed_TR ([] : List (α×Bool)) := by simp [IsRed_TR]
 
 lemma IsRed_TR.singleton {α : Type*} [DecidableEq α] {a : α×Bool} : IsRed_TR [a] := by
   simp [IsRed_TR,List.reverseRecOn]
-
--- lemma IsRed_TR_getlast {α : Type*} [DecidableEq α] (L : List (α×Bool)) (hL1 : L ≠ []) (hL : IsRed_TR L) {a : α×Bool} (ha : (a.1 ≠ (L.getLast hL).1 ∨ a.2 = (L.getLast hL).2)) : IsRed_TR L := by
---   rw [IsRed_TR]
 
 lemma IsRed_TR.concat_concat_iff : IsRed_TR (l++[b]) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) ↔ IsRed_TR (l ++ [b] ++ [a]) := by
   constructor
