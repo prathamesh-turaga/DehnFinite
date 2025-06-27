@@ -91,7 +91,7 @@ lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻
 
 def cycreduced {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := (IsRed L) ∧ (Uncycle L = L)
 
-lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) (h : cycreduced L₁): (IsRed (L₂ ++ L₁)) ∨ (IsRed (L₁ ++ FreeGroup.invRev L₂)) := by sorry
+lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) (h : cycreduced L₁) (h₂ : IsRed L₂) : (IsRed (L₂ ++ L₁)) ∨ (IsRed (L₁ ++ FreeGroup.invRev L₂)) := by sorry
 -- needed
 
 lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧ (J ≠ []) ∧ (IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
@@ -465,9 +465,52 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
             exact htRed
             exact xisred'
 
+lemma length_gives_empty_r {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : List.length (P ++ Q) ≤ List.length P → Q = [] := by
+  intro hypo
+  rw [List.length_append] at hypo
+  simp at hypo; exact hypo
+
+lemma length_gives_empty_l {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : List.length (P ++ Q) ≤ List.length Q → P = [] := by
+  intro hypo
+  rw [List.length_append] at hypo
+  simp at hypo; exact hypo
+
+lemma ratatata {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)) (h : P = Q) :  List.IsRotated Q R → List.IsRotated P R := by
+  intro hypo
+  rw [<-h] at hypo
+  exact hypo
+
+lemma nontrivlength_nonempty {α : Type*} [DecidableEq α] (P : List (α × Bool)) : (P.length ≠  0) → (P≠ []) := by exact fun a ↦ Ne.symm (ne_of_apply_ne List.length fun a_1 ↦ a (id (Eq.symm a_1)))
+lemma uncyc_then_no_cancel {α : Type*} [DecidableEq α] (P : List (α × Bool)) (h₁ : Uncycle P = P) (h₂ : P ≠ []) (h₃ : P.length ≥ 2) : [P.head h₂] ≠ FreeGroup.invRev [P.getLast h₂] := by
+  by_contra; expose_names
+  have this₁ : P = [P.head h₂]++P.tail := by simp
+  have this₂ : P.tail ≠ [] := by
+    by_contra; expose_names
+    have contt₁ : P = (P.head h₂) :: P.tail := by simp
+    have contt₂ : P.length = 1 := by
+      rw [h_1] at contt₁
+      rw [contt₁]; simp
+    rw [contt₂] at h₃
+    contradiction
+  have this₃ : (P.getLast h₂) = (P.tail.getLast this₂) := by exact Eq.symm (List.getLast_tail this₂)
+  have this₄ : P = [P.head h₂] ++ (P.tail.dropLast ++ [P.tail.getLast this₂]) := by
+    rw [List.dropLast_append_getLast this₂]
+    simp
+  have hh₁ : Uncycle P = P := by exact h₁
+  nth_rewrite 1 [this₄, h] at h₁
+  nth_rewrite 1 [<- inv_of_inv [P.tail.getLast this₂], <-List.append_assoc, <-this₃, uncyc_on_conj] at h₁
+
+  have argumentt : (P.tail.dropLast) ≠ P := by
+    unfold List.dropLast
+    cases P with
+    | nil =>
+      simp at h₂
+    | cons head tail =>
+      sorry
+  sorry
 
 lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) (hr : cycreduced r) (hy : cycreduced y) (hg : IsRed g) (hypo : r = FreeGroup.reduce (g ++ y ++ (FreeGroup.invRev g))) : r ~r y := by
-  have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy
+  have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy hg
   have cases_y : y = [] ∨ y ≠ [] := by exact eq_or_ne y []
   have cases_g : g = [] ∨ g ≠ [] := by exact eq_or_ne g []
   cases cases_y with
@@ -514,7 +557,200 @@ lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) 
             rw [convenience₁] at hypo
             rw [distrib_reduce, FreeGroup.reduce_append_reduce_reduce] at hypo
             -- Now bad cases will likely begin
-            sorry
+            have Icases : I = [] ∨ I ≠ [] := by exact eq_or_ne I []
+            cases Icases with
+            | inl Inil =>
+              rw [Inil, List.append_nil] at hypo
+              have Kcases : K = [] ∨ K ≠ [] := by exact eq_or_ne K []
+              cases Kcases with
+              | inl Knil =>
+                simp [Knil, List.nil_append, List.append_nil] at hypo
+                rw [equiv_of_reds] at hJ
+                rw [hJ] at hypo
+                rw [Inil, List.nil_append] at yLike
+                rw [yLike, hypo]
+              | inr K_content =>
+                -- now either JK is red, or not. If red, then we done
+                -- if not, then more cases after application of technique.
+                have KinvJK_redbool : IsRed (FreeGroup.invRev K ++ J++K) ∨ ¬ IsRed (FreeGroup.invRev K ++ J++K) := by exact Classical.em (IsRed (FreeGroup.invRev K ++ J ++ K))
+                cases KinvJK_redbool with
+                | inl IsRedKinvJK =>
+                  rw [Inil, List.nil_append] at hIK hy yLike
+                  rw [equiv_of_reds] at IsRedKinvJK
+                  rw [IsRedKinvJK] at hypo
+                  rcases hr with ⟨hr₁, hr₂⟩
+                  nth_rewrite 1 [hypo] at hr₂
+                  nth_rewrite 2 [<-inv_of_inv K] at hr₂
+                  rw [uncyc_on_conj] at hr₂
+                  rw [hy.2] at hr₂
+                  rw [<-hr₂, yLike]
+                | inr NeedTechnique =>
+                  -- JK not reduced. J,K both nonempty.
+                  apply technique at NeedTechnique
+                  rcases NeedTechnique with ⟨P, Q, R, hP, hQ, Q_content, hR, hPR, KinvJLike, KLike⟩
+                  let lq := List.length Q
+                  let lp := List.length P
+                  let lr := List.length R
+                  let lj := List.length J
+                  let lk := List.length K
+                  rw [KinvJLike, KLike, <-List.append_assoc, distrib_reduce, FreeGroup.reduce_append_reduce_reduce] at hypo
+                  rw [equiv_of_reds] at hPR; rw [hPR] at hypo
+                  rw [Inil, List.nil_append] at yLike
+                  have final_cases_P : (P = [] ∨ P ≠ []) := by exact eq_or_ne P []
+                  have final_cases_R : (R = [] ∨ R ≠ []) := by exact eq_or_ne R []
+                  cases final_cases_P with
+                  | inl Pnil =>
+                    cases final_cases_R with
+                    | inl Rnil =>
+                      simp [Pnil, Rnil] at hypo
+                      have lenKinvJ : lk + lj = lq := by
+                        calc
+                          lk + lj = List.length K + lj := by rfl
+                          _ = List.length (FreeGroup.invRev K) + lj := by rw [len_of_inv]
+                          _ = List.length ((FreeGroup.invRev K) ++ J) := by simp [lj, List.length_append]
+                          _ = lq := by rw [KinvJLike, Pnil, List.nil_append]
+                      have lenK : lk = lq := by calc
+                        lk = K.length := by rfl
+                        _ = (FreeGroup.invRev Q ++ R).length := by simp [KLike]
+                        _ = lq := by rw [Rnil, List.append_nil, <-len_of_inv]
+                      rw [lenK] at lenKinvJ
+                      simp at lenKinvJ
+                      have Jempty : J = [] := by exact List.eq_nil_iff_length_eq_zero.mpr lenKinvJ
+                      rw [Jempty] at yLike; rw [yLike, hypo]
+                    | inr Rcontent =>
+                      have lenKinvJ : lk + lj = lq := by
+                        calc
+                          lk + lj = List.length K + lj := by rfl
+                          _ = List.length (FreeGroup.invRev K) + lj := by rw [len_of_inv]
+                          _ = List.length ((FreeGroup.invRev K) ++ J) := by simp [lj, List.length_append]
+                          _ = lq := by rw [KinvJLike, Pnil, List.nil_append]
+                      have lenK : lk = lq + lr := by calc
+                        lk = K.length := by rfl
+                        _ = (FreeGroup.invRev Q ++ R).length := by simp [KLike]
+                        _ = lq + lr:= by rw [List.length_append, <-len_of_inv]
+                      rw [lenK, add_assoc] at lenKinvJ
+                      simp at lenKinvJ
+                      rcases lenKinvJ with ⟨lr0, lj0⟩
+                      have Rempty : R = [] := by exact List.eq_nil_iff_length_eq_zero.mpr lr0
+                      have Jempty : J = [] := by exact List.eq_nil_iff_length_eq_zero.mpr lj0
+                      simp [Rempty, Pnil] at hypo
+                      simp [Jempty] at yLike
+                      simp [hypo, yLike]
+                  | inr Pcontent =>
+                    cases final_cases_R with
+                    | inl Rnil =>
+
+                      have lenKinvJ : lk + lj = lp + lq:= by
+                        calc
+                          lk + lj = List.length K + lj := by rfl
+                          _ = List.length (FreeGroup.invRev K) + lj := by rw [len_of_inv]
+                          _ = List.length ((FreeGroup.invRev K) ++ J) := by simp [lj, List.length_append]
+                          _ = lp + lq := by rw [KinvJLike, List.length_append]
+                      have lenK : lk = lq := by calc
+                        lk = K.length := by rfl
+                        _ = (FreeGroup.invRev Q ++ R).length := by simp [KLike]
+                        _ = (FreeGroup.invRev Q).length := by simp [Rnil]
+                        _ = lq := by exact FreeGroup.invRev_length
+
+                      simp [Rnil] at hypo
+                      have KinvLike : (FreeGroup.invRev K) = FreeGroup.invRev R ++ Q := by
+                        rw [<-inv_of_inv Q, <- inv_of_app, KLike]
+                      simp [Rnil, List.append_nil] at KLike KinvLike
+
+                      rw [<- KinvLike] at KinvJLike
+                      simp [lenK, add_comm] at lenKinvJ
+                      have JrotP_prep₁ : J ++ FreeGroup.invRev K ~r FreeGroup.invRev K ++ J:= by
+                        exact List.isRotated_append
+                      rw [KinvJLike] at JrotP_prep₁
+                      sorry
+                    | inr Rcontent =>
+                      have lenKinvJ : lk + lj = lp + lq:= by
+                        calc
+                          lk + lj = List.length K + lj := by rfl
+                          _ = List.length (FreeGroup.invRev K) + lj := by rw [len_of_inv]
+                          _ = List.length ((FreeGroup.invRev K) ++ J) := by simp [lj, List.length_append]
+                          _ = lp + lq := by rw [KinvJLike, List.length_append]
+                      have lenK : lk = lq + lr:= by calc
+                        lk = K.length := by rfl
+                        _ = (FreeGroup.invRev Q ++ R).length := by simp [KLike]
+                        _ = lq + lr := by rw [List.length_append, FreeGroup.invRev_length]
+                      have m₁ : ((P ++ R).getLast (by simp [Rcontent])) = (R.getLast Rcontent) := by
+                        exact
+                          List.getLast_append_of_ne_nil
+                            (of_eq_true
+                              (Eq.trans
+                                (congrArg Not
+                                  (Eq.trans List.append_eq_nil_iff._proof_1
+                                    (Eq.trans (congrArg (And (P = [])) (eq_false Rcontent))
+                                      (and_false (P = [])))))
+                                not_false_eq_true))
+                            Rcontent
+                      have m₂ : (R.getLast Rcontent) = (K.getLast K_content) := by
+                        apply List.IsSuffix.getLast ?_ Rcontent
+                        aesop
+                      have KinvContent : FreeGroup.invRev K ≠ [] := by
+                        by_contra
+                        expose_names
+                        have mini : K = [] := by
+                          rw [<- inv_of_inv K, h]
+                          simp
+                        contradiction
+                      have m₃ : [(K.getLast K_content)] = FreeGroup.invRev [(FreeGroup.invRev K).head KinvContent] := by
+                        unfold FreeGroup.invRev
+                        simp
+                      have m₄ : [(FreeGroup.invRev K).head KinvContent] = [(P ++ Q).head (by simp [Pcontent])] := by
+                        simp [<-KinvJLike]
+                        exact Eq.symm (List.head_append_left KinvContent)
+                      have m₅ : (P++Q).head (by simp [Pcontent]) = P.head (by simp [Pcontent]) := by
+                        exact List.head_append_left
+                          (of_eq_true
+                            (Eq.trans (congrArg Not (eq_false Pcontent)) not_false_eq_true))
+                      have m₆ : (P++R).head (by simp [Pcontent]) = P.head Pcontent := by exact List.head_append_left Pcontent
+                      rw [m₅] at m₄
+                      rw [m₄, <-m₂, <-m₁, <-m₆] at m₃
+                      rw [hypo] at hr
+                      rcases hr with ⟨rIsRed, rUncycled⟩
+                      have Plength' : P.length > 0 := by exact List.length_pos_iff.mpr Pcontent
+                      have Plength : P.length >=1 := by exact Plength'
+                      have Rlength' : R.length > 0 := by exact List.length_pos_iff.mpr Rcontent
+                      have Rlength : R.length >=1 := by exact Rlength'
+                      have PRlength : (P ++ R).length >= 2 := by
+                        rw [List.length_append]; linarith
+                      have this₁ : [(P ++ R).head (by simp [Pcontent])] ≠ FreeGroup.invRev [(P ++ R).getLast (by simp [Pcontent])] := by
+                        exact uncyc_then_no_cancel (P ++ R) rUncycled
+                          (of_eq_true
+                            (Eq.trans
+                              (congrArg Not
+                                (Eq.trans List.append_eq_nil_iff._proof_1
+                                  (Eq.trans (congrArg (fun x ↦ x ∧ R = []) (eq_false Pcontent))
+                                    (false_and (R = [])))))
+                              not_false_eq_true))
+                          PRlength
+                      rw [m₃] at this₁
+                      have m₃' : FreeGroup.invRev [(P ++ R).getLast (by simp [Pcontent])] = [(P ++ R).head (by simp [Pcontent])] := by
+                        rw [<- inv_of_inv [(P ++ R).head (by simp [Pcontent])], m₃]
+                      rw [<-m₃'] at this₁
+                      simp at this₁
+                  exact hg
+                  exact hK
+            | inr I_content =>
+              have KinvJI_IsRed : IsRed ((FreeGroup.invRev K) ++ J ++ I) ∧ IsRed J := by
+                apply isredsubl (FreeGroup.invRev K ++ J ++ I) J IsRed_gy
+              have full_red : IsRed (((FreeGroup.invRev K) ++ J) ++ I ++ K) := by
+                apply app_red_still_red ((FreeGroup.invRev K) ++ J) I K hg hI hK KinvJI_IsRed.1 hIK I_content
+              rw [equiv_of_reds] at full_red
+              rw [full_red] at hypo
+              nth_rewrite 2 [<-inv_of_inv K] at hypo
+              rcases hr with ⟨hr₁, hr₂⟩
+              nth_rewrite 1 [hypo] at hr₂
+              have convenience₁ : FreeGroup.invRev K ++ J ++ I ++ FreeGroup.invRev (FreeGroup.invRev K) = FreeGroup.invRev K ++ (J ++ I) ++ FreeGroup.invRev (FreeGroup.invRev K) := by simp
+              rw [convenience₁] at hr₂
+              rw [uncyc_on_conj (FreeGroup.invRev K) (J ++ I)] at hr₂
+              rw [<-cycreduced] at hy
+              have cycredJI : cycreduced (J++I) := by exact uncyc_then_comm_lists₂ I J hy
+              unfold cycreduced at cycredJI; rw [cycredJI.2] at hr₂
+              rw [<-hr₂, yLike]
+              exact List.isRotated_append
         | inr IsRed_yginv =>
           have gyIsRed : IsRed (g ++ y) ∨ ¬ IsRed (g ++ y) := by exact Classical.em (IsRed (g ++ y))
           cases gyIsRed with
@@ -547,7 +783,38 @@ lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) 
             rw [convenience₁] at hypo
             rw [distrib_reduce, FreeGroup.reduce_append_reduce_reduce, <-List.append_assoc, <-List.append_assoc] at hypo
             -- Now bad cases will likely begin
-            sorry
+
+            have K_cases : K = [] ∨ K ≠ [] := by exact eq_or_ne K []
+            cases K_cases with
+            | inl Knil =>
+              have I_cases : I = [] ∨ I ≠ [] := by exact eq_or_ne I []
+              cases I_cases with
+              | inl Inil =>
+                simp [Inil, Knil] at yLike hypo hy
+                rw [equiv_of_reds] at hy; rw [hy.1] at hypo
+                rw [yLike, hypo]
+              | inr I_content => sorry
+            | inr K_content =>
+              rw [List.append_assoc, List.append_assoc] at hypo
+              rw [inv_of_app, List.append_assoc] at IsRed_yginv
+              have IsRedKJinvIinv : IsRed (FreeGroup.invRev J) ∧ IsRed ((K ++ (FreeGroup.invRev J ++ FreeGroup.invRev I))) := by
+                apply isredsubl (FreeGroup.invRev J) (K ++ (FreeGroup.invRev J ++ FreeGroup.invRev I)) IsRed_yginv
+
+              have full_red : IsRed (I ++ (K) ++ ((FreeGroup.invRev J) ++ (FreeGroup.invRev I))) := by
+                apply app_red_still_red I K ((FreeGroup.invRev J) ++ (FreeGroup.invRev I)) hI hK ginvIsRed hIK IsRedKJinvIinv.2 K_content
+              rw [equiv_of_reds] at full_red
+              rw [<-List.append_assoc] at hypo
+              rw [full_red, <-List.append_assoc] at hypo
+              have convenience₂ : I ++ K ++ FreeGroup.invRev J ++ FreeGroup.invRev I = I ++ (K ++ FreeGroup.invRev J) ++ FreeGroup.invRev I := by simp
+              rw [convenience₂] at hypo
+              rcases hr with ⟨hr₁, hr₂⟩
+              nth_rewrite 1 [hypo, uncyc_on_conj] at hr₂
+              have cycredKJinv : cycreduced (K ++ FreeGroup.invRev J) := by
+                exact uncyc_then_comm_lists₂ (FreeGroup.invRev J) K hy
+              unfold cycreduced at cycredKJinv
+              rw [cycredKJinv.2] at hr₂
+              rw [<- hr₂, yLike]
+              exact List.isRotated_append
 #check uncyc_of_red_is_red
 
 lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
