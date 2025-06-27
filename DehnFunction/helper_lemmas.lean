@@ -341,7 +341,6 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
     apply (equiv_of_reds x.toWord).mp at xisred; simp only [xisred]
     have xisred' : IsRed x.toWord := by exact(equiv_of_reds x.toWord).mpr xisred
     have mylem : IsRed (head :: tail ++ x.toWord) ∨ IsRed (x.toWord ++ FreeGroup.invRev (head :: tail)) := by
-      exact uncyclicmid x.toWord (head :: tail) CC
     have xcases : (x.toWord = []) ∨ (x.toWord ≠ []) := by exact eq_or_ne x.toWord []
     cases xcases with
       | inl xcontent => -- x is empty
@@ -379,7 +378,6 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
             have KinvRed : IsRed (FreeGroup.invRev K) := by exact inv_of_red K hK
             have KinvJRed : IsRed ((FreeGroup.invRev K)++J) := by
               rw [h_g] at gRed; rw [hHTLike] at gRed; exact gRed
-
             have convenience₂ : (FreeGroup.invRev K ++ J ++ I ++ J) = (FreeGroup.invRev K) ++ (J ++ I ++ J) := by simp
             rw [convenience₂] at h
             have KinvRed_JIJRed : IsRed (FreeGroup.invRev K) ∧ IsRed (J++I++J) := by
@@ -404,7 +402,6 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
                 rw [full_red]
                 nth_rewrite 2 [<- inv_of_inv K]
                 rw [uncyc_on_conj, hxLike, xisuncyclic]
-
               | inr Jcontent =>
                   have triplet_red : IsRed ((FreeGroup.invRev K) ++ J ++ I) := by
                     apply app_red_still_red (FreeGroup.invRev K) J I KinvRed hJ hI KinvJRed JIRed_JRed.1 Jcontent
@@ -422,12 +419,29 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
             | inr NONEMPTY => -- J ≠ []
               have Icases : I = [] ∨ I ≠ [] := by exact eq_or_ne I []
               cases Icases with
-              | inl Icontent =>
-
+              | inl Inil =>
                 sorry
               | inr Icontent =>
-                sorry
+                rw [<- List.append_assoc, <-List.append_assoc] at h
+                have IsRedKinvJI : IsRed (FreeGroup.invRev K ++ J ++ I) ∧ IsRed J := by exact isredsubl (FreeGroup.invRev K ++ J ++ I) J h
+                rw [List.append_assoc] at IsRedKinvJI
+                have cycredJI : cycreduced (J++I) := by
+                  rw [hxLike] at CC
+                  exact uncyc_then_comm_lists₂ I J CC
+                unfold cycreduced at cycredJI
+                have IsRedJIK : IsRed (J++I++K) := by
+                  apply app_red_still_red J I K hJ hI hK cycredJI.1 hIK Icontent
+                have JInonnil : J++I ≠ [] := by simp [NONEMPTY]
+                have full_red : IsRed (FreeGroup.invRev K ++ (J ++ I) ++ K) := by
+                  apply app_red_still_red (FreeGroup.invRev K) (J ++ I) K KinvRed cycredJI.1 hK IsRedKinvJI.1 IsRedJIK JInonnil
+                rw [equiv_of_reds, <-List.append_assoc] at full_red
+                rw [full_red]
+                nth_rewrite 2 [<- inv_of_inv K]
 
+                have lastbitconvenience : FreeGroup.invRev K ++ J ++ I ++ FreeGroup.invRev (FreeGroup.invRev K) = FreeGroup.invRev K ++ (J ++ I) ++ FreeGroup.invRev (FreeGroup.invRev K) := by simp
+                rw [lastbitconvenience]
+                rw [uncyc_on_conj, cycredJI.2, hxLike]
+                exact List.isRotated_append
             exact xisred'
             have htRed : IsRed (head :: tail) := by rw [h_g] at gRed; exact gRed
             have htinvRed : IsRed (FreeGroup.invRev (head :: tail)) := by exact inv_of_red (head :: tail) htRed
