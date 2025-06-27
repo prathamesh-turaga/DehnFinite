@@ -341,6 +341,7 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
     apply (equiv_of_reds x.toWord).mp at xisred; simp only [xisred]
     have xisred' : IsRed x.toWord := by exact(equiv_of_reds x.toWord).mpr xisred
     have mylem : IsRed (head :: tail ++ x.toWord) ∨ IsRed (x.toWord ++ FreeGroup.invRev (head :: tail)) := by
+      exact uncyclicmid x.toWord (head :: tail) CC (by rw [h_g] at gRed; exact gRed)
     have xcases : (x.toWord = []) ∨ (x.toWord ≠ []) := by exact eq_or_ne x.toWord []
     cases xcases with
       | inl xcontent => -- x is empty
