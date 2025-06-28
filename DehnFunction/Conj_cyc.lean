@@ -112,7 +112,8 @@ theorem cycred_conj_to_cyc' {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_
     rw[h_cycred.2]
   unfold cycreduced at h_cycred
   have h_red_A_inv : IsRed (FreeGroup.invRev A) := by
-    sorry
+    exact inv_of_red A h_red
+
   by_cases h_red_AB: IsRed (A ++ B)
   . have h_not_red2: ¬ IsRed (B ++ FreeGroup.invRev A) := by
       by_contra h_temp
@@ -140,7 +141,8 @@ theorem cycred_conj_to_cyc' {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_
       rw[h_kred]
     rw[h_cancel]
     have h_Kinv_red: IsRed (FreeGroup.invRev K) := by
-      sorry
+      exact inv_of_red K h_red_K
+
     have h_kinvinv: FreeGroup.invRev (FreeGroup.invRev K) = K := FreeGroup.invRev_invRev
     by_cases h_empty_I: I = []
     . rw[h_empty_I]
@@ -190,14 +192,95 @@ theorem cycred_conj_to_cyc' {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_
     nth_rewrite 2 [← h_kinvinv]
     rw[uncycle_conj]
     have h_uncyc_ji: cycreduced (J++I):=by
-      sorry
+      rw[← cycreduced] at h_cycred
+      rw[h_eq_IJ] at h_cycred
+      exact uncyc_then_comm_lists₂ I J h_cycred
+
     unfold cycreduced at h_uncyc_ji
     rw[h_uncyc_ji.2]
     exact List.isRotated_append
 
 
+  have h_red_BAinv: IsRed (B ++ FreeGroup.invRev A) := by
+    rw[← cycreduced] at h_cycred
+    have h_temp := uncyclicmid B A h_cycred h_red
 
-  sorry
+    simp_all only [false_or]
+
+  have h_app_tech := technique A B h_red h_cycred.1 h_red_AB
+  rcases h_app_tech with ⟨I, J, K, h_red_I, h_red_J, h_J_ne, h_red_K, h_red_IK, h_eq_IJ, h_eq_invRevJ_K⟩
+
+  rw[ h_eq_invRevJ_K]
+  nth_rewrite 1 [h_eq_IJ]
+
+  have h_Ainv: FreeGroup.invRev A = (FreeGroup.invRev J) ++ (FreeGroup.invRev I) := by
+    rw[h_eq_IJ, FreeGroup.invRev_append]
+
+  have h_red_kainv: IsRed (K ++ FreeGroup.invRev A) := by
+    rw[h_eq_invRevJ_K, List.append_assoc] at h_red_BAinv
+    exact IsRed.suffix_IsRed (FreeGroup.invRev J) (K ++ FreeGroup.invRev A) h_red_BAinv
+  rw[equiv_of_reds] at h_red_kainv
+  rw[equiv_of_reds] at h_red_I
+  have h_cancel: FreeGroup.reduce (I ++ J ++ (FreeGroup.invRev J ++ K) ++ FreeGroup.invRev A) = FreeGroup.reduce (I  ++ K ++ FreeGroup.invRev A) := by
+    calc
+    FreeGroup.reduce (I ++ J ++ (FreeGroup.invRev J ++ K) ++ FreeGroup.invRev A) = FreeGroup.reduce (I ++ (J ++ FreeGroup.invRev J) ++ (K ++ FreeGroup.invRev A)) := by
+      simp
+    _ = FreeGroup.reduce (FreeGroup.reduce I ++ FreeGroup.reduce (J ++ FreeGroup.invRev J) ++ FreeGroup.reduce (K ++ FreeGroup.invRev A)) := by
+      rw[Red_over_three]
+
+    _ = FreeGroup.reduce (FreeGroup.reduce I ++ FreeGroup.reduce (K ++ FreeGroup.invRev A)) := by
+      rw[Red_sum_invRev']
+      simp
+    _ = FreeGroup.reduce (FreeGroup.reduce I ++ (K ++ FreeGroup.invRev A)) := by rw[h_red_kainv]
+
+    _ = FreeGroup.reduce (FreeGroup.reduce I ++ K ++ FreeGroup.invRev A) := by
+      simp
+    _ = FreeGroup.reduce (I ++ K ++ FreeGroup.invRev A) := by
+      rw[h_red_I]
+
+  rw[h_cancel]
+  by_cases h_empty_K: K = []
+  . rw[h_empty_K]
+    simp
+    rw[h_Ainv, ← List.append_assoc]
+    have h_lensum: A.length = I.length + J.length   := by
+      rw[h_eq_IJ]
+      exact List.length_append
+
+    have h_Ilen: (I).length < A.length := by
+      have h_lenJ : J.length >0 := by
+        exact List.length_pos_iff.mpr h_J_ne
+      have h_len_subt: A.length - ( I).length > 0 := by
+        rw[h_lensum]
+        simp
+        exact h_lenJ
+      exact Nat.lt_of_sub_pos h_len_subt
+    let m := (I).length
+    have h_m: m = (I).length := by
+      rfl
+    rw[h_empty_K] at h_eq_invRevJ_K
+    simp at h_eq_invRevJ_K
+    rw[← h_eq_invRevJ_K]
+    rw[← h_m, hA] at h_Ilen
+    rw[← equiv_of_reds] at h_red_I
+    exact ih m h_Ilen I h_m h_red_I
+
+  rw[← equiv_of_reds] at h_red_kainv h_red_I
+
+  have h_total_red: IsRed (I ++ K ++ FreeGroup.invRev A) := app_red_still_red I K (FreeGroup.invRev A) h_red_I h_red_K h_red_A_inv h_red_IK h_red_kainv h_empty_K
+  rw[equiv_of_reds] at h_total_red
+  rw[h_total_red, h_Ainv]
+  have h_assoc: I ++ K ++ (FreeGroup.invRev J ++ FreeGroup.invRev I) = I ++ (K ++ FreeGroup.invRev J) ++ FreeGroup.invRev I :=by simp
+  rw[h_assoc]
+  rw[uncycle_conj]
+  rw[← cycreduced, h_eq_invRevJ_K] at h_cycred
+  have h_new_cycred : cycreduced (K ++ FreeGroup.invRev J) := uncyc_then_comm_lists₂ _ _ h_cycred
+  unfold cycreduced at h_new_cycred
+  rw[h_new_cycred.2]
+  exact List.isRotated_append
+
+
+
 
 
 theorem cycred_conj_to_cyc {G: Type*} [DecidableEq G] (A B: List (G × Bool)) (h_cycred: cycreduced B) (h_red: IsRed A): Uncycle (FreeGroup.reduce (A ++ B ++ FreeGroup.invRev A)) ~r B := by
@@ -338,7 +421,7 @@ theorem cyc_if_conj_list {G: Type*} [DecidableEq G] (r : FreeGroup G): ∀ (g : 
 
 
 theorem conj_iff_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (g: FreeGroup G), w = g * r * g⁻¹) ↔
-  ∃ (word: List (G × Bool)), word ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk word := by
+  ∃ (wrd: List (G × Bool)), wrd ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk wrd := by
   constructor
   . intro h_w_conj_r
     rcases h_w_conj_r with ⟨g, h_g⟩
@@ -353,8 +436,10 @@ theorem conj_iff_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (g: Fr
       exact FreeGroup.reduce.self
 
   . exact conj_if_cyc w r
+#eval CycReduce [(1, true),(2, false), (1, false)] ~r CycReduce [(2, true), (2, false), (2, false)]
 
-
+theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
+sorry
 
 theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
     (step R x y) ↔

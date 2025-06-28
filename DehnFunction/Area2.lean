@@ -38,11 +38,6 @@ noncomputable def Area2 {α : Type*} [DecidableEq α] (relators : Set (FreeGroup
 
 
 
-theorem wordArea_eq_zero_iff2 {G : Type*} [DecidableEq G](R : Set (FreeGroup G)) (w : FreeGroup G) :
-  Area2 R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R := by
-
-   sorry
-
 lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))
 
     : ∀ (l : List (FreeGroup G)), (∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) →

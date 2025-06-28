@@ -616,7 +616,7 @@ theorem cyclic_list_is_conj {G: Type*} [DecidableEq G]:
   . exact h_n
 
 
-theorem conj_if_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (word: List (G × Bool)), word ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk word) → (∃ (g: FreeGroup G), w = g * r * g⁻¹)
+theorem conj_if_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (wrd: List (G × Bool)), wrd ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk wrd) → (∃ (g: FreeGroup G), w = g * r * g⁻¹)
    := by
     intro h_exist
     rcases h_exist with ⟨p, h_p_r, h_cyc⟩

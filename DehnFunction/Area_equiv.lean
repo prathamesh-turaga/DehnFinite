@@ -104,3 +104,10 @@ theorem area2_le_area1 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : 
     unfold Area2
     rw [h_set_empty]
     simp
+
+
+  theorem area1_eq_area2 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+  wordArea R w = Area2 R w := by
+    apply le_antisymm
+    . exact area1_le_area2 R w
+    . exact area2_le_area1 R w
