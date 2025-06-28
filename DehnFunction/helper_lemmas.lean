@@ -255,14 +255,38 @@ lemma largest_cancel {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h�
       use b
       use c
       simp
-      have h1 : a.head hae = h := by
+      constructor
+      · have h1 : (a++c).head (List.append_ne_nil_of_left_ne_nil hae c) = (h::gs).head (List.cons_ne_nil h gs) := by
+          simp_rw [hab]
+          rw [List.head_append_left (hae),List.head_append_of_ne_nil hae]
+        rw [List.head_cons] at h1
+        rw [← h1] at h₁
+        rw [IsRed.cons_iff_not_red_pair]
+        exact ⟨hac,h₁.2⟩
+      · exact ⟨hab,hbc⟩
 
 lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧ (J ≠ []) ∧ (IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by
   intro h
-
-
--- extremely important
-
+  have h1 := largest_cancel _ _ h₁ h₂
+  rcases h1 with ⟨I,J,K,hIK,hIJ,hJK⟩
+  use I
+  use J
+  use K
+  rw [hIJ] at h₁
+  constructor
+  · exact IsRed.prefix_IsRed I J h₁
+  · constructor
+    · exact IsRed.suffix_IsRed I J h₁
+    · constructor
+      · by_cases hJ : J = []
+        · rw [hJ] at h₁ hIJ hJK
+          simp at *
+          rw [hIJ,hJK] at h
+          contradiction
+        · exact hJ
+      · constructor
+        · exact IsRed.suffix_IsRed I K hIK
+        · exact ⟨hIK,hIJ,hJK⟩
 
 lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := by sorry
 -- is done by omar
