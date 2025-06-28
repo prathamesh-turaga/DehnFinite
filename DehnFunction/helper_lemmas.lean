@@ -270,20 +270,99 @@ lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bo
 -- extremely important
 
 lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by
-  have Pnil : P = [] ∨ P ≠ [] := by sorry
-  intro hypo
-  unfold cycreduced at hypo
-  rcases hypo with ⟨IsRedPQ, uncyclicPQ⟩
-  rw [<-uncycled_iff] at uncyclicPQ; simp [uncycled] at uncyclicPQ
-  have QPRed : IsRed P ∧ IsRed Q := by exact isredsubl P Q IsRedPQ
-  rcases QPRed with ⟨Pred,Qred⟩
-  rw [join_red_iff_safe] at IsRedPQ
-  sorry
-  exact Pred
-  exact Qred
-  sorry
+  have Pnil : P = [] ∨ P ≠ [] := by exact eq_or_ne P []
+  have Qnil : Q = [] ∨ Q ≠ [] := by exact eq_or_ne Q []
+  cases Pnil with
+  | inl Pnil =>
+    cases Qnil with
+    | inl Qnil =>
+      simp [Pnil]
+    | inr Qcontent =>
+      simp [Pnil]
+  | inr Pcontent =>
+    cases Qnil with
+    | inl Qnil => simp [Qnil]
+    | inr Qcontent =>
+      intro hypo
+      unfold cycreduced at hypo
+      rcases hypo with ⟨IsRedPQ, uncyclicPQ⟩
+      rw [<-uncycled_iff] at uncyclicPQ; simp [uncycled] at uncyclicPQ
+      have QPRed : IsRed P ∧ IsRed Q := by exact isredsubl P Q IsRedPQ
+      rcases QPRed with ⟨Pred,Qred⟩
+      rw [join_red_iff_safe] at IsRedPQ
+      unfold cycreduced
+      have cond4join : (P.getLast Pcontent).1 ≠ (Q.head Qcontent).1 ∨ (P.getLast Pcontent).2 = (Q.head Qcontent).2 := by
+        simp [IsRedPQ]
+      have UncyclicQP : Uncycle (Q++P) = (Q++P) := by
+        rw [<-uncycled_iff]
+        simp [uncycled]
+        split
+        · simp
+        · simp
+        · expose_names
+          simp
+          have QPhd_x : ((Q ++ P).head (by simp [Qcontent])) = (x :: y :: ys).head (by simp) := by
+            simp [heq]
+          have QPhd_Qhd : ((Q ++ P).head (by simp [Qcontent])) = (Q.head (by simp [Qcontent])) := by exact List.head_append_left (of_eq_true (Eq.trans (congrArg Not (eq_false Qcontent)) not_false_eq_true))
+          rw [List.head, QPhd_Qhd] at QPhd_x
+          rw [<-QPhd_x]
+          have mm₁ : (x :: y :: ys).getLast (by simp) = (Q ++ P).getLast (by simp [Pcontent]) := by simp [heq]
+          have mm₂ : (x :: y :: ys).getLast (by simp) = (y :: ys).getLast (by simp) := by simp
+          have mm₃ : (Q ++ P).getLast (by simp [Pcontent]) = P.getLast (by simp [Pcontent]) := by
+            exact List.getLast_append_of_ne_nil
+              (of_eq_true
+                (Eq.trans
+                  (congrArg Not
+                    (Eq.trans List.append_eq_nil_iff._proof_1
+                      (Eq.trans (congrArg (And (Q = [])) (eq_false Pcontent))
+                        (and_false (Q = [])))))
+                  not_false_eq_true))
+              (of_eq_true (Eq.trans (congrArg Not (eq_false Pcontent)) not_false_eq_true))
+          rw [mm₂, mm₃] at mm₁
+          rw [mm₁]
+          by_cases jj : (P.getLast Pcontent).1 ≠ (Q.head Qcontent).1 ∨ (P.getLast Pcontent).2 = (Q.head Qcontent).2
+          · aesop
+          · aesop
+      constructor
+      ·
+        have formofPQ : ∃ x y : (α × Bool), ∃ ys : List (α × Bool), (P ++ Q) = x :: y :: ys := by
+          use P.head Pcontent
+          cases hh : P.tail with
+          | nil =>
+            use Q.head Qcontent
+            use Q.tail
+            have this₁ : P = (P.head (Pcontent):: P.tail) := by simp
+            rw [hh] at this₁
+            have this₂ : Q = (Q.head (Qcontent):: Q.tail) := by simp
 
-  sorry
+            have this₃ : P ++ Q = [P.head Pcontent] ++ (Q.head Qcontent :: Q.tail) := by
+              simp
+              rw [<-List.singleton_append, <-this₁]
+            rw [<-List.singleton_append, <-this₁]
+            simp
+          | cons head tail =>
+            use (P.tail).head (by simp [hh])
+            use (P.tail).tail ++ Q
+            simp [hh]
+            have this₁ : P.head Pcontent :: head :: (tail ++ Q) = (P.head Pcontent :: (head :: tail)) ++ Q := by simp
+            rw [this₁, <-hh]
+            simp
+        rcases formofPQ with ⟨x,y,xs,property⟩
+        simp [property] at uncyclicPQ
+        have xisPhead : (x :: y :: xs).head (by simp) = (P ++ Q).head (by simp [Pcontent]) := by simp [property]
+        rw [List.head] at xisPhead
+        have m₁ : (P ++ Q).head (by simp [Pcontent]) = P.head Pcontent := by
+          exact List.head_append_left Pcontent
+        rw [m₁] at xisPhead
+        sorry
+      ·
+        exact UncyclicQP
+      exact Pred
+      exact Qred
+
+
+
+
 -- need this exactly in proof, don't remove for now.
 
 
