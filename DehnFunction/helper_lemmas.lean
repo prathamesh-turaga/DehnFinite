@@ -55,61 +55,6 @@ lemma equiv_of_reds {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRe
   apply FreeGroup.Red.sublist at this₂
   apply List.Sublist.antisymm RLJ this₂
 
--- reduced word a₁a₂...a_n is cycreduced iff it is reduced and ¬(a₁a_n = 1)
-
--- The last part can be said for the word as a list also. L represents a reduced word iff :
--- it is "reduced" (as a list, so would need to invoke standard free reduction somehow) and
--- (([L.head].mk) * ([L.getLast].mk) = 1)
-
--- Lemma : ∃! red and cycred reps for each equiv class that a FG constitutes.
--- pg 176 of pdf has an outline
--- Propn (w, w' cycreduced) : w.conj w' ↔ they are cyclically equivalent
-
-
-
---  have other₁ : True := sorry
---  simp [this₁, this₂, that₁, that₂, that₃]
-
-lemma uncycle_LL_eq_uncycle_L {α : Type*} [DecidableEq α] (L : List (α × Bool)) (a : α) (b : Bool) :
-    Uncycle ((a, b) :: L ++ [(a, !b)]) = Uncycle L := by
-  -- First, handle the case where L is empty
-  cases L with
-  | nil =>
-    simp [Uncycle]
-  | cons hd tl =>
-    have this₁: (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl ++ [(a, !b)]).dropLast := by exact rfl
-    have this₂ : (hd :: tl ++ [(a, !b)]).dropLast = (hd :: tl) := by exact List.dropLast_concat
-    -- Now we can simplify the if statement
-    have this₃ : (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl) := by exact this₂
-    -- For non-empty L, we need to analyze Uncycle's behavior
-    simp [Uncycle]
-    have last_eq : ((hd :: tl) ++ [(a, !b)]).getLast (by simp) = (a, !b) := by simp [this₁, this₂, this₃]
-    -- The key step: the condition x.1 = last.1 ∧ x.2 ≠ last.2 is exactly true
-    have cond_true : a = a ∧ b ≠ !b := by
-      simp [Bool.not_eq_true']
-    rw [this₃]
-
-    -- The recursive call now works on the middle part, which is exactly L
-
-
-lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool)), ∀ p : α, ∀ b : Bool, Uncycle L = Uncycle ((p, b) :: L ++ [(p, !b)]) := by
-  intros L p b
-  simp
-  let LL := ((p, b) :: L ++ [(p, !b)])
-  rw [<- uncycle_LL_eq_uncycle_L L p b]
-  unfold Uncycle
-  simp
-
-
-lemma star {α : Type*} [DecidableEq α]: ∀ (L : List (α × Bool)), (Uncycle (FreeGroup.reduce L)).IsRotated (FreeGroup.reduce (Uncycle L)) := by
-  intros L
-  induction Uncycle L with
-  | nil => sorry
-  | cons head tail ih =>
-    simp [ih]
-    sorry
-#check List.rec
-
 lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
     simp! [FreeGroup.toWord_mul]
     rw [<-List.append_assoc]
@@ -325,7 +270,7 @@ lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : 
         · exact IsRed.suffix_IsRed I K hIK
         · exact ⟨hIK,hIJ,hJK⟩
 
-lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := by sorry
+lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := uncycle_conj P Q
 -- is done by omar
 
 lemma inv_of_app {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : FreeGroup.invRev (P++Q) = (FreeGroup.invRev Q) ++ (FreeGroup.invRev P) := by exact
@@ -464,15 +409,6 @@ lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)
       simp [this]
 
 -- extremely important
-
--- lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by
---   induction P with
---   | nil => sorry
---   | cons head tail ih =>
---     intro hd hypo
---     specialize ih hd; specialize ih
---     sorry
--- -- extremely important
 
 lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by
   intro ⟨hPQ1,hPQ2⟩
