@@ -140,6 +140,7 @@ lemma distrib_reduce {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)): 
 
 
 lemma isredsubl {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed (P ++ Q)) : (IsRed P) ∧ (IsRed Q) := by sorry
+-- vivek has done
 
 lemma red_join_at_nonempty_left {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P = []) (h₂ : Q ≠ []) : IsRed (P ++ Q) := by
   rw [h₁]; simp [List.nil_append]; exact hQ
@@ -281,16 +282,25 @@ lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)
 
 -- extremely important
 
-lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by
-  induction P with
-  | nil => sorry
-  | cons head tail ih =>
-    intro hd hypo
-    specialize ih hd; specialize ih
-    sorry
+lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by sorry
+
 -- extremely important
 
-lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by sorry
+lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by
+  have Pnil : P = [] ∨ P ≠ [] := by sorry
+  intro hypo
+  unfold cycreduced at hypo
+  rcases hypo with ⟨IsRedPQ, uncyclicPQ⟩
+  rw [<-uncycled_iff] at uncyclicPQ; simp [uncycled] at uncyclicPQ
+  have QPRed : IsRed P ∧ IsRed Q := by exact isredsubl P Q IsRedPQ
+  rcases QPRed with ⟨Pred,Qred⟩
+  rw [join_red_iff_safe] at IsRedPQ
+  sorry
+  exact Pred
+  exact Qred
+  sorry
+
+  sorry
 -- need this exactly in proof, don't remove for now.
 
 
@@ -496,6 +506,33 @@ lemma ratatata {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)) (h : P 
   exact hypo
 
 lemma nontrivlength_nonempty {α : Type*} [DecidableEq α] (P : List (α × Bool)) : (P.length ≠  0) → (P≠ []) := by exact fun a ↦ Ne.symm (ne_of_apply_ne List.length fun a_1 ↦ a (id (Eq.symm a_1)))
+
+lemma uncycreduceslength {α : Type*} [DecidableEq α] : ∀ L : List (α × Bool), List.length (Uncycle L) <= List.length L := by
+  intro L
+  unfold Uncycle
+  cases L with
+  | nil =>
+    simp
+  | cons head tail =>
+    split
+    · expose_names
+      simp
+    · simp
+    · expose_names
+      have hdLike : (head :: tail).head (by simp)= (x :: y :: ys).head (by simp):= by aesop
+      simp [List.head] at hdLike
+      have endLike : (head :: tail).getLast (by simp)= (x :: y :: ys).getLast (by simp):= by aesop
+      simp [List.getLast] at endLike
+      have tlLike : tail = y :: ys := by exact List.tail_eq_of_cons_eq heq
+      simp [<-hdLike, <-tlLike]
+      by_cases hypo : head.1 = (tail.getLast (by simp [tlLike])).1 ∧ ¬head.2 = (tail.getLast (by simp [tlLike])).2
+      ·
+        simp [hypo]
+
+        sorry
+      ·
+        simp [hypo]
+
 lemma uncyc_then_no_cancel {α : Type*} [DecidableEq α] (P : List (α × Bool)) (h₁ : Uncycle P = P) (h₂ : P ≠ []) (h₃ : P.length ≥ 2) : [P.head h₂] ≠ FreeGroup.invRev [P.getLast h₂] := by
   by_contra; expose_names
   have this₁ : P = [P.head h₂]++P.tail := by simp
@@ -514,16 +551,20 @@ lemma uncyc_then_no_cancel {α : Type*} [DecidableEq α] (P : List (α × Bool))
   have hh₁ : Uncycle P = P := by exact h₁
   nth_rewrite 1 [this₄, h] at h₁
   nth_rewrite 1 [<- inv_of_inv [P.tail.getLast this₂], <-List.append_assoc, <-this₃, uncyc_on_conj] at h₁
+  rw [<-uncycled_iff] at hh₁
+  unfold uncycled at hh₁
+  cases P with
+  | nil =>
+    simp at h₂
+  | cons head tail =>
+    simp at h this₁
+    simp only [List.tail] at h₁ this₂ this₃ this₄
 
-  have argumentt : (P.tail.dropLast) ≠ P := by
-    unfold List.dropLast
-    cases P with
-    | nil =>
-      simp at h₂
-    | cons head tail =>
-      sorry
-  sorry
 
+
+    sorry
+#check List.dropLast
+/-
 lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) (hr : cycreduced r) (hy : cycreduced y) (hg : IsRed g) (hypo : r = FreeGroup.reduce (g ++ y ++ (FreeGroup.invRev g))) : r ~r y := by
   have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy hg
   have cases_y : y = [] ∨ y ≠ [] := by exact eq_or_ne y []
@@ -831,7 +872,7 @@ lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) 
               rw [<- hr₂, yLike]
               exact List.isRotated_append
 #check uncyc_of_red_is_red
-
+-/
 lemma Uncycleconj_is_reduced_cperm {α : Type*} [DecidableEq α] : ∀ (g y : FreeGroup α), Uncycle (g*y*g⁻¹).toWord ∈ List.map FreeGroup.reduce (y.toWord).cyclicPermutations := by
   intros g y
   rw [form_of_conj]
