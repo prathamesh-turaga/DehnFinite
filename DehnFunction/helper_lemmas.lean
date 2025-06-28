@@ -55,7 +55,6 @@ lemma equiv_of_reds {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRe
   apply FreeGroup.Red.sublist at this₂
   apply List.Sublist.antisymm RLJ this₂
 
-
 -- reduced word a₁a₂...a_n is cycreduced iff it is reduced and ¬(a₁a_n = 1)
 
 -- The last part can be said for the word as a list also. L represents a reduced word iff :
@@ -71,8 +70,45 @@ lemma equiv_of_reds {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRe
 --  have other₁ : True := sorry
 --  simp [this₁, this₂, that₁, that₂, that₃]
 
+lemma uncycle_LL_eq_uncycle_L {α : Type*} [DecidableEq α] (L : List (α × Bool)) (a : α) (b : Bool) :
+    Uncycle ((a, b) :: L ++ [(a, !b)]) = Uncycle L := by
+  -- First, handle the case where L is empty
+  cases L with
+  | nil =>
+    simp [Uncycle]
+  | cons hd tl =>
+    have this₁: (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl ++ [(a, !b)]).dropLast := by exact rfl
+    have this₂ : (hd :: tl ++ [(a, !b)]).dropLast = (hd :: tl) := by exact List.dropLast_concat
+    -- Now we can simplify the if statement
+    have this₃ : (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl) := by exact this₂
+    -- For non-empty L, we need to analyze Uncycle's behavior
+    simp [Uncycle]
+    have last_eq : ((hd :: tl) ++ [(a, !b)]).getLast (by simp) = (a, !b) := by simp [this₁, this₂, this₃]
+    -- The key step: the condition x.1 = last.1 ∧ x.2 ≠ last.2 is exactly true
+    have cond_true : a = a ∧ b ≠ !b := by
+      simp [Bool.not_eq_true']
+    rw [this₃]
+
+    -- The recursive call now works on the middle part, which is exactly L
 
 
+lemma if_conj_then_cyc {α : Type*} [DecidableEq α] : ∀ (L : List (α × Bool)), ∀ p : α, ∀ b : Bool, Uncycle L = Uncycle ((p, b) :: L ++ [(p, !b)]) := by
+  intros L p b
+  simp
+  let LL := ((p, b) :: L ++ [(p, !b)])
+  rw [<- uncycle_LL_eq_uncycle_L L p b]
+  unfold Uncycle
+  simp
+
+
+lemma star {α : Type*} [DecidableEq α]: ∀ (L : List (α × Bool)), (Uncycle (FreeGroup.reduce L)).IsRotated (FreeGroup.reduce (Uncycle L)) := by
+  intros L
+  induction Uncycle L with
+  | nil => sorry
+  | cons head tail ih =>
+    simp [ih]
+    sorry
+#check List.rec
 
 lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻¹).toWord = FreeGroup.reduce (g.toWord ++ y.toWord ++ FreeGroup.invRev g.toWord) := by
     simp! [FreeGroup.toWord_mul]
@@ -85,13 +121,209 @@ lemma form_of_conj {α : Type*} [DecidableEq α] (g y : FreeGroup α): (g*y*g⁻
 
 def cycreduced {α : Type*} [DecidableEq α] (L : List (α × Bool)) : Prop := (IsRed L) ∧ (Uncycle L = L)
 
-lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) (h : cycreduced L₁): (IsRed (L₂ ++ L₁)) ∨ (IsRed (L₁ ++ FreeGroup.invRev L₂)) := by sorry
--- needed
+lemma isredsubl {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed (P ++ Q)) : (IsRed P) ∧ (IsRed Q) := by exact ⟨IsRed.prefix_IsRed P Q h,IsRed.suffix_IsRed P Q h⟩
 
-lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧ (J ≠ []) ∧ (IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by sorry
-#check FreeGroup.reduce_toWord
--- extremely important
+lemma red_join_at_nonempty_left {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P = []) (h₂ : Q ≠ []) : IsRed (P ++ Q) := by
+  rw [h₁]; simp [List.nil_append]; exact hQ
 
+lemma red_join_at_nonempty_right {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q = []) : IsRed (P ++ Q) := by
+  rw [h₂]; simp [List.nil_append]; exact hP
+
+lemma red_at_join_nonempty_both {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2  → IsRed (P ++ Q) := by
+  induction P generalizing Q with
+  | nil =>
+    by_contra
+    aesop
+  | cons head tail ih =>
+    specialize ih Q
+    have this₁ : (head :: tail) = [head]++tail := by simp!
+    rw [this₁] at hP
+
+    have prelim : IsRed tail := by
+      have hRed_and_tRed : IsRed [head] ∧ IsRed tail := by apply isredsubl [head] tail hP
+      exact hRed_and_tRed.2
+    simp [prelim, hQ] at ih
+    have case_maker : tail = [] ∨ tail ≠ [] := by exact eq_or_ne tail []
+    cases case_maker with
+    | inl h =>
+      rw [h] at hP; simp at hP
+      simp [h]
+      rw [equiv_of_reds]
+      intros hypo₁
+      rw [<-equiv_of_reds]
+      exact (IsRed.cons_iff_not_red_pair Q h₂).mpr ⟨hQ,hypo₁⟩
+
+    | inr h =>
+      simp [h, h₂] at ih
+      have tail_is_the_player : ((head :: tail).getLast h₁) = (tail.getLast h) := by exact List.getLast_cons h
+      rw [tail_is_the_player]
+      intro hypo_last
+      apply ih at hypo_last
+      rw [←this₁] at hP
+      rw [IsRed.cons_iff_not_red_pair _ h] at hP
+      exact (IsRed.cons_iff_not_red_pair (tail++Q) (List.append_ne_nil_of_left_ne_nil h Q)).mpr ⟨hypo_last,by convert hP.2 using 2 <;> simp [List.head_append,h]⟩
+
+lemma FreeGroup.invRev_concat {α : Type*} [DecidableEq α] (L : List (α×Bool)) (a : α×Bool) : invRev (L++[a]) = (a.1,!a.2)::(invRev L) := by simp [invRev]
+
+lemma FreeGroup.invRev_singleton {α : Type*} [DecidableEq α] (a : α×Bool) : invRev [a] = [(a.1,!a.2)] := rfl
+
+lemma IsRed.invRev_IsRed {α : Type*} [DecidableEq α] (l : List (α×Bool)) (hl : IsRed l) : IsRed (FreeGroup.invRev l) := by
+  induction l with
+  | nil => simp [nil]
+  | cons a as ih =>
+    match as with
+    | [] => simp [FreeGroup.invRev,singleton]
+    | b::bs =>
+      rw [FreeGroup.invRev_cons,FreeGroup.invRev_cons,FreeGroup.invRev_singleton,FreeGroup.invRev_singleton,← concat_iff_end_not_red_pair]
+      constructor
+      · rw [← FreeGroup.invRev_singleton,← FreeGroup.invRev_cons]
+        exact ih (tail (b :: bs) hl)
+      · rw [cons_cons_iff_not_red_pair] at hl
+        aesop
+
+theorem IsRed.iff_invRev_IsRed {α : Type*} [DecidableEq α] (l : List (α×Bool)) : IsRed l ↔ IsRed (FreeGroup.invRev l) :=
+  ⟨fun h => invRev_IsRed _ h,fun h => (Eq.symm (FreeGroup.invRev_invRev (L₁:=l))) ▸ invRev_IsRed _ h⟩
+
+lemma uncyclicmid {α : Type*} [DecidableEq α] (L₁ L₂ : List (α × Bool)) (h₁ : cycreduced L₁) (h₂ : IsRed L₂):
+  (IsRed (L₂ ++ L₁)) ∨ (IsRed (L₁ ++ FreeGroup.invRev L₂)) := by
+  match L₁ with
+  | [] => simp [h₂]
+  | a::as =>
+    by_cases h2 : L₂ = []
+    · simp [h2,h₁.1]
+    · by_cases hab : a.1 = (L₂.getLast h2).1 ∧ a.2 = !(L₂.getLast h2).2
+      · right
+        have h3 : uncycled (a::as) := by refine (uncycled_iff (a :: as)).mpr h₁.2
+        match as with
+        | [] =>
+          have h2c := List.concat_if_not_empty _ h2
+          rw [h2c]
+          simp [List.cons_append,FreeGroup.invRev_singleton]
+          rw [IsRed.cons_cons_iff_not_red_pair]
+          constructor
+          · rw [← FreeGroup.invRev_concat,← h2c]
+            exact IsRed.invRev_IsRed _ h₂
+          · right
+            exact hab.2
+        | b::bs =>
+          simp [uncycled] at h3
+          apply red_at_join_nonempty_both _ _ h₁.1 (IsRed.invRev_IsRed _ h₂) (by simp) (by simp [FreeGroup.invRev,h2])
+          have h4 : ((a::b::bs).getLast (by simp)) = ((b::bs).getLast (by simp)) := by exact List.getLast_cons (by simp)
+          simp_rw [h4]
+          have h5 : (FreeGroup.invRev L₂).head (by simp [FreeGroup.invRev,h2]) = ((L₂.getLast h2).1,!(L₂.getLast h2).2) := by simp [FreeGroup.invRev]
+          rw [h5]
+          aesop
+      · left
+        apply red_at_join_nonempty_both _ _ h₂ h₁.1 h2 (by simp only [ne_eq, reduceCtorEq,not_false_eq_true])
+        rw [not_and_or] at hab
+        aesop
+
+lemma largest_cancel {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : List (α × Bool)), (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by
+  induction P using IsRed_inductive.induct with
+  | case1 =>
+    use []
+    use []
+    use Q
+    simp [h₂]
+  | case2 g =>
+    by_cases hQ : Q = []
+    · use [g]
+      use []
+      use []
+      simp [h₁,hQ]
+    · by_cases hg : g.1 = (Q.head hQ).1 ∧ g.2 = !(Q.head hQ).2
+      · use []
+        use [g]
+        use Q.tail
+        simp
+        constructor
+        · rw [← List.head_cons_tail Q hQ] at h₂
+          exact IsRed.tail Q.tail h₂
+        · rw [FreeGroup.invRev_singleton]
+          simp [hg]
+      · use [g]
+        use []
+        use Q
+        simp
+        rw [not_and_or,Bool.eq_not_iff] at hg
+        push_neg at hg
+        exact (IsRed.cons_iff_not_red_pair Q hQ).mpr ⟨h₂,hg⟩
+  | case3 g h gs ih =>
+    rw [IsRed.cons_cons_iff_not_red_pair] at h₁
+    rcases ih h₁.1 with ⟨a,b,c,hac,hab,hbc⟩
+    by_cases hae : a = []
+    · match c with
+      | [] =>
+        use [g]
+        use b
+        use []
+        simp [hae] at hab hbc
+        simp [hab,hbc]
+        exact IsRed.singleton
+      | j::js =>
+        simp [hae] at hab
+        rw [hbc,← hab,FreeGroup.invRev_cons,FreeGroup.invRev_singleton] at h₂
+        have h1 : IsRed ([(h.1, !h.2),j]) := by
+          apply IsRed.prefix_IsRed _ js
+          apply IsRed.suffix_IsRed (FreeGroup.invRev gs) _
+          aesop
+        rw [IsRed.two_iff_not_red_pair] at h1
+        simp at h1
+        by_cases hgc : g.1 = j.1 ∧ g.2 = !j.2
+        · use []
+          use g::h::gs
+          use js
+          simp
+          constructor
+          · exact IsRed.tail _ (IsRed.suffix_IsRed _ _ hac)
+          · rw [FreeGroup.invRev_cons,hab,FreeGroup.invRev_singleton]
+            simp [hgc,hbc]
+        · use [g]
+          use h::gs
+          use j::js
+          simp
+          constructor
+          · simp [hae] at hac
+            rw [not_and_or,Bool.eq_not_iff] at hgc
+            push_neg at hgc
+            exact (IsRed.cons_cons_iff_not_red_pair js).mpr ⟨hac,hgc⟩
+          · simp [hab,hbc]
+    · use g::a
+      use b
+      use c
+      simp
+      constructor
+      · have h1 : (a++c).head (List.append_ne_nil_of_left_ne_nil hae c) = (h::gs).head (List.cons_ne_nil h gs) := by
+          simp_rw [hab]
+          rw [List.head_append_left (hae),List.head_append_of_ne_nil hae]
+        rw [List.head_cons] at h1
+        rw [← h1] at h₁
+        rw [IsRed.cons_iff_not_red_pair]
+        exact ⟨hac,h₁.2⟩
+      · exact ⟨hab,hbc⟩
+
+lemma technique {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h₁ : IsRed P) (h₂ : IsRed Q) : ¬IsRed (P ++ Q) → ∃ (I J K : List (α × Bool)), (IsRed I) ∧ (IsRed J) ∧ (J ≠ []) ∧ (IsRed K) ∧ (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by
+  intro h
+  have h1 := largest_cancel _ _ h₁ h₂
+  rcases h1 with ⟨I,J,K,hIK,hIJ,hJK⟩
+  use I
+  use J
+  use K
+  rw [hIJ] at h₁
+  constructor
+  · exact IsRed.prefix_IsRed I J h₁
+  · constructor
+    · exact IsRed.suffix_IsRed I J h₁
+    · constructor
+      · by_cases hJ : J = []
+        · rw [hJ] at h₁ hIJ hJK
+          simp at *
+          rw [hIJ,hJK] at h
+          contradiction
+        · exact hJ
+      · constructor
+        · exact IsRed.suffix_IsRed I K hIK
+        · exact ⟨hIK,hIJ,hJK⟩
 
 lemma uncyc_on_conj {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : Uncycle (P ++ Q ++ FreeGroup.invRev P) = Uncycle Q := by sorry
 -- is done by omar
@@ -131,48 +363,6 @@ lemma distrib_reduce {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)): 
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce ([] ++ FreeGroup.reduce R)) := by simp [cancel_inverses]
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce (FreeGroup.reduce R)) := by simp!
   _ = FreeGroup.reduce (FreeGroup.reduce P ++ FreeGroup.reduce R) := by simp [inv_of_inv]
-
-
-lemma isredsubl {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (h : IsRed (P ++ Q)) : (IsRed P) ∧ (IsRed Q) := by sorry
-
-lemma red_join_at_nonempty_left {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P = []) (h₂ : Q ≠ []) : IsRed (P ++ Q) := by
-  rw [h₁]; simp [List.nil_append]; exact hQ
-
-lemma red_join_at_nonempty_right {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q = []) : IsRed (P ++ Q) := by
-  rw [h₂]; simp [List.nil_append]; exact hP
-
-lemma red_at_join_nonempty_both {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2  → IsRed (P ++ Q) := by
-  induction P generalizing Q with
-  | nil =>
-    by_contra
-    aesop
-  | cons head tail ih =>
-    specialize ih Q
-    have this₁ : (head :: tail) = [head]++tail := by simp!
-    rw [this₁] at hP
-
-    have prelim : IsRed tail := by
-      have hRed_and_tRed : IsRed [head] ∧ IsRed tail := by apply isredsubl [head] tail hP
-      exact hRed_and_tRed.2
-    simp [prelim, hQ] at ih
-    have case_maker : tail = [] ∨ tail ≠ [] := by exact eq_or_ne tail []
-    cases case_maker with
-    | inl h =>
-      rw [h] at hP; simp at hP
-      simp [h]
-      rw [equiv_of_reds]
-      intros hypo₁
-      rw [<-equiv_of_reds]
-      sorry --( done easily by porting to vivek's inductive definition )
-
-    | inr h =>
-      simp [h, h₂] at ih
-      have tail_is_the_player : ((head :: tail).getLast h₁) = (tail.getLast h) := by exact List.getLast_cons h
-      rw [tail_is_the_player]
-      intro hypo_last
-      simp [hypo_last] at ih
-      sorry -- ( done easily by porting to vivek's inductive definition )
-
 
 lemma join_is_red_then_safe {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : IsRed (P ++ Q) → (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2 := by
   intro hypo
@@ -275,16 +465,82 @@ lemma app_red_still_red {α : Type*} [DecidableEq α] (P Q R : List (α × Bool)
 
 -- extremely important
 
-lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by
-  induction P with
-  | nil => sorry
-  | cons head tail ih =>
-    intro hd hypo
-    specialize ih hd; specialize ih
-    sorry
--- extremely important
+-- lemma uncyc_then_comm_lists₁ {α : Type*} [DecidableEq α] (P : List (α × Bool)) : ∀ K, K~r P → cycreduced (P) → cycreduced (K) := by
+--   induction P with
+--   | nil => sorry
+--   | cons head tail ih =>
+--     intro hd hypo
+--     specialize ih hd; specialize ih
+--     sorry
+-- -- extremely important
 
-lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by sorry
+lemma uncyc_then_comm_lists₂ {α : Type*} [DecidableEq α] (P Q : List (α × Bool)) : cycreduced (P ++ Q) → cycreduced (Q ++ P) := by
+  intro ⟨hPQ1,hPQ2⟩
+  rw [← uncycled_iff] at hPQ2
+  match P with
+  | [] =>
+    simp at *
+    rw [uncycled_iff] at hPQ2
+    exact ⟨hPQ1,hPQ2⟩
+  | [a] =>
+    match Q with
+    | [] =>
+      simp at *
+      rw [uncycled_iff] at hPQ2
+      exact ⟨hPQ1,hPQ2⟩
+    | [c] =>
+      simp at *
+      constructor
+      · rw [IsRed.two_iff_not_red_pair] at hPQ1 ⊢
+        tauto
+      · rw [uncycled_iff] at hPQ2
+        simp [Uncycle,-not_and] at *
+        tauto
+    | c::d::ds =>
+    constructor
+    · simp [uncycled] at hPQ2
+      have h1 := List.concat_if_not_empty (d::ds) (by simp)
+      have h2 : c :: ((d :: ds).dropLast ++ [(d :: ds).getLast (by simp)]) ++ [a] = (c :: (d :: ds).dropLast) ++ [(d :: ds).getLast (by simp)] ++ [a] := by simp
+      rw [h1,h2,← IsRed.concat_iff_end_not_red_pair]
+      have h3 : (c :: (d :: ds).dropLast ++ [(d :: ds).getLast (by simp)]) = c::((d :: ds).dropLast ++ [(d :: ds).getLast (by simp)]) := rfl
+      rw [h3,← h1]
+      exact ⟨IsRed.suffix_IsRed ([a]) _ hPQ1,by tauto⟩
+    · rw [← uncycled_iff]
+      have h1 : c :: d :: ds ++ [a] = c::(d::ds++[a]) := rfl
+      rw [h1]
+      simp [uncycled]
+      simp [IsRed.cons_cons_iff_not_red_pair] at hPQ1
+      tauto
+  | a::b::bs =>
+    match Q with
+    | [] =>
+      simp at *
+      rw [uncycled_iff] at hPQ2
+      exact ⟨hPQ1,hPQ2⟩
+    | [c] =>
+      rw [cycreduced]
+      simp [uncycled] at hPQ2 ⊢
+      constructor
+      · exact (IsRed.cons_cons_iff_not_red_pair (b::bs)).mpr ⟨IsRed.prefix_IsRed (a :: b :: bs) [c] hPQ1,by tauto⟩
+      · rw [← uncycled_iff]
+        simp [uncycled]
+        have h1 := List.concat_if_not_empty (b::bs) (by simp)
+        rw [h1] at hPQ1
+        apply (IsRed.concat_iff_end_not_red_pair (a :: (b :: bs).dropLast)).mpr at hPQ1
+        tauto
+    | c::d::ds =>
+      simp [uncycled] at hPQ2
+      constructor
+      · have h1 : (d::ds).getLast (List.cons_ne_nil d ds) = (c::d::ds).getLast (List.cons_ne_nil c (d::ds)) := rfl
+        apply red_at_join_nonempty_both _ _ (IsRed.suffix_IsRed (a :: b :: bs) (c :: d :: ds) hPQ1) (IsRed.prefix_IsRed (a :: b :: bs) (c :: d :: ds) hPQ1) (List.cons_ne_nil c (d :: ds)) (List.cons_ne_nil a (b :: bs))
+        rw [← h1]
+        simp
+        tauto
+      · rw [← uncycled_iff]
+        simp [uncycled]
+        rw [join_red_iff_safe _ _ (IsRed.prefix_IsRed (a :: b :: bs) (c :: d :: ds) hPQ1) (IsRed.suffix_IsRed (a :: b :: bs) (c :: d :: ds) hPQ1) (List.cons_ne_nil a (b :: bs)) (List.cons_ne_nil c (d :: ds))] at hPQ1
+        simp at hPQ1
+        tauto
 -- need this exactly in proof, don't remove for now.
 
 
@@ -335,7 +591,7 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
     apply (equiv_of_reds x.toWord).mp at xisred; simp only [xisred]
     have xisred' : IsRed x.toWord := by exact(equiv_of_reds x.toWord).mpr xisred
     have mylem : IsRed (head :: tail ++ x.toWord) ∨ IsRed (x.toWord ++ FreeGroup.invRev (head :: tail)) := by
-      exact uncyclicmid x.toWord (head :: tail) CC
+      exact uncyclicmid x.toWord (head :: tail) CC (by rwa [← h_g])
     have xcases : (x.toWord = []) ∨ (x.toWord ≠ []) := by exact eq_or_ne x.toWord []
     cases xcases with
       | inl xcontent => -- x is empty
@@ -461,7 +717,7 @@ lemma uncyc_red_isrotated_red_uncyc₁ {α : Type*} [DecidableEq α] : ∀ (g x 
 
 
 lemma prathamesh_lemma {α : Type*} [DecidableEq α] (r y g: List (α × Bool)) (hr : cycreduced r) (hy : cycreduced y) (hg : IsRed g) (hypo : r = FreeGroup.reduce (g ++ y ++ (FreeGroup.invRev g))) : r ~r y := by
-  have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy
+  have cases₁ : IsRed (g ++ y) ∨ IsRed (y ++ (FreeGroup.invRev g)) := by apply uncyclicmid y g hy hg
   have cases_y : y = [] ∨ y ≠ [] := by exact eq_or_ne y []
   have cases_g : g = [] ∨ g ≠ [] := by exact eq_or_ne g []
   cases cases_y with
