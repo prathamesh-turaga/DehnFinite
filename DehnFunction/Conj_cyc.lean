@@ -436,10 +436,6 @@ theorem conj_iff_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (g: Fr
       exact FreeGroup.reduce.self
 
   . exact conj_if_cyc w r
-#eval CycReduce [(1, true),(2, false), (1, false)] ~r CycReduce [(2, true), (2, false), (2, false)]
-
-theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
-sorry
 
 theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
     (step R x y) ↔
@@ -493,3 +489,235 @@ theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (
           simp_all only [exists_apply_eq_apply]
       rw[h_symm]
       apply conj_iff_cyc (y*x⁻¹) r
+
+def Uncycle' {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
+  match L with
+  | [] => []
+  | a::as =>
+    if has:as = [] then [a]
+    else if a.1 = (as.getLast has).1 ∧ a.2 ≠ (as.getLast has).2 then
+      Uncycle' (as.dropLast)
+    else
+      L
+  termination_by L.length
+
+def Uncycle_eq_Uncycle' {G: Type*} [DecidableEq G] (l : List (G × Bool)) : Uncycle l = Uncycle' l := by
+  match l with
+  | [] => simp [Uncycle,Uncycle']
+  | [a] => simp [Uncycle,Uncycle']
+  | a::b::bs =>
+    simp [Uncycle,Uncycle']
+    congr
+    exact Uncycle_eq_Uncycle' ((b :: bs).dropLast)
+  termination_by l.length
+
+lemma CycReduce_is_cycreduced {G: Type*} [DecidableEq G] (l : List (G × Bool)) : cycreduced (CycReduce l) := by
+  rw [CycReduce]
+  have h := isRed_of_reduce l
+  generalize FreeGroup.reduce l = L at *
+  rw [Uncycle_eq_Uncycle']
+  induction L using Uncycle'.induct with
+  | case1 => simp [Uncycle',Uncycle,cycreduced,IsRed.nil]
+  | case2 a => simp [Uncycle',Uncycle,cycreduced,IsRed.singleton]
+  | case3 a as has ha ih =>
+    have h1 := IsRed.tail _ h
+    simp [Uncycle',has,ha]
+    have h2 := List.concat_if_not_empty as has
+    rw [h2] at h
+    exact ih (IsRed.prefix_IsRed _ _ (IsRed.tail _ h))
+  | case4 a as has ha =>
+    simp [Uncycle',has,ha]
+    constructor
+    · exact h
+    · rw [← uncycled_iff]
+      match as with
+      | [] => simp[uncycled]
+      | b::bs => simp [uncycled,ha]
+
+lemma CycReduce_idem {G: Type*} [DecidableEq G] (l : List (G × Bool)) : CycReduce (CycReduce l) = CycReduce l := by
+  have ⟨h1,h2⟩ := CycReduce_is_cycreduced l
+  rw [CycReduce]
+  rw [equiv_of_reds] at h1
+  rw [h1]
+  exact h2
+
+-- lemma CycReduce_Uncycled
+
+lemma Uncycle_IsRed {G: Type*} [DecidableEq G] (l : List (G × Bool)) (hl : IsRed l) : IsRed (Uncycle l) := by
+  contrapose hl
+  rw [IsRed.not_iff_red_pair_exists _] at *
+  rcases hl with ⟨l1,l2,x,b,hul⟩
+  induction l using Uncycle'.induct with
+  | case1 => simp [Uncycle] at hul
+  | case2 a =>
+    simp [Uncycle] at hul
+    have h1 := congrArg List.length hul
+    simp at h1
+    linarith
+  | case3 a as has ha ih =>
+    rw [Uncycle_eq_Uncycle'] at hul ih
+    simp [Uncycle',has,ha] at hul
+    rcases ih hul with ⟨L1,L2,y,c,hasl⟩
+    use a::L1
+    use (L2++[as.getLast (has)])
+    use y
+    use c
+    simp
+    nth_rw 1 [List.concat_if_not_empty as has]
+    rw [hasl]
+    simp
+  | case4 a as has ha =>
+    rw [Uncycle_eq_Uncycle'] at hul
+    simp [Uncycle',has,ha] at hul
+    use l1
+    use l2
+    use x
+    use b
+
+-- lemma IsRed_append_IsRed_Uncycle_eq_rotation {G: Type*} [DecidableEq G] (l1 l2 : List (G × Bool)) (hl : IsRed (l1++l2)) : Uncycle (l1++l2) ~r Uncycle (l2++l1) := by
+--   induction l1 using Uncycle'.induct with
+--   | case1 => simp; rfl
+--   | case2 a =>
+--     match l2 with
+--     | [] => simp; rfl
+--     | b::bs =>
+--       simp [IsRed.cons_cons_iff_not_red_pair] at hl
+--       rw [Uncycle_eq_Uncycle',Uncycle_eq_Uncycle']
+--       have h1 : ¬(b.1 = a.1 ∧ ¬b.2 = a.2) := by tauto
+--       simp [Uncycle',h1]
+--       by_cases ha : a.1 = ((b :: bs).getLast (by simp)).1 ∧ ¬a.2 = ((b :: bs).getLast (by simp)).2
+--       · simp [ha]
+--         sorry
+--       · use 1
+--         simp [ha]
+--   | case3 a as has ha ih =>
+--     match l2 with
+--     | [] => simp; rfl
+--     | b::bs =>
+--       rw [join_red_iff_safe _ _ (IsRed.prefix_IsRed (a :: as) (b :: bs) hl) (IsRed.suffix_IsRed (a :: as) (b :: bs) hl) (by simp) (by simp)] at hl
+
+--       sorry
+--   | case4 a as h h => sorry
+
+
+  -- induction l1 using IsRed_inductive.induct with
+  -- | case1 => simp; rfl
+  -- | case2 a =>
+  --   induction l2 using List.reverseRecOn with
+  --   | nil => simp; rfl
+  --   | append_singleton bs b ih =>
+  --     rw [← List.append_assoc] at hl
+  --     have h1 := (IsRed.prefix_IsRed ([a] ++ bs) [b] hl)
+  --     by_cases hbs : bs = []
+  --     · by_cases ha : a.1 = b.1 ∧ ¬a.2 = b.2
+  --       · rw [Uncycle_eq_Uncycle',Uncycle_eq_Uncycle']
+  --         simp [Uncycle',ha,hbs]
+  --         tauto
+  --       · rw [Uncycle_eq_Uncycle',Uncycle_eq_Uncycle']
+  --         simp [hbs,Uncycle',ha]
+  --         rw [if_neg (by  tauto)]
+  --         sorry
+  --     · by_cases ha : a.1 = b.1 ∧ ¬a.2 = b.2
+  --       · rw [Uncycle_eq_Uncycle',Uncycle_eq_Uncycle']
+  --         simp [Uncycle',ha,hbs]
+  --         tauto
+  --       · rw [Uncycle_eq_Uncycle',Uncycle_eq_Uncycle']
+  --         simp [hbs,Uncycle',ha]
+  --         rw [if_neg (by  tauto)]
+  --       sorry
+
+
+  --   ·
+
+
+  --     -- have hl2 := List.concat_if_not_empty l2 hl2e
+  --     -- rw [hl2]
+  --     sorry
+  -- | case3 a b as ih1 => sorry
+
+lemma IsRed_append_rotation_uncycled {G: Type*} [DecidableEq G] (l1 l2 : List (G × Bool)) (hl1e : l1 ≠ []) (hl2e : l2 ≠ []) (hl : IsRed (l1++l2)) : uncycled (l2++l1) := by
+  match l2 with
+  | [] => contradiction
+  | a::as =>
+    rw [uncycled_iff,Uncycle_eq_Uncycle']
+    rw [join_red_iff_safe _ _ (IsRed.prefix_IsRed l1 (a :: as) hl) (IsRed.suffix_IsRed l1 (a :: as) hl) (hl1e) (by simp)] at hl
+    simp at hl
+    simp [Uncycle',hl1e]
+    tauto
+
+theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
+  constructor
+  · intro h
+    rw [IsConj] at h
+    rcases h with ⟨g,hg⟩
+    rw [SemiconjBy] at hg
+    have h1 : FreeGroup.mk L₂ = (g.1) * FreeGroup.mk L₁ * (↑g)⁻¹ := eq_mul_inv_of_mul_eq (Eq.symm hg)
+    rcases (conj_iff_cyc (FreeGroup.mk L₂) (FreeGroup.mk L₁)).mp ⟨g.1,h1⟩ with ⟨w,hw1,hw2⟩
+    rw [FreeGroup.toWord_mk] at hw1
+    rw [CycRed,FreeGroup.toWord_mk,← CycReduce] at hw2
+    apply FreeGroup.toWord_inj.mpr at hw2
+    rw [FreeGroup.toWord_mk,FreeGroup.toWord_mk] at hw2
+    have h2 := congrArg Uncycle hw2
+    rw [← CycReduce,← CycReduce,CycReduce_idem] at h2
+    rw [h2]
+    symm at hw1
+    rw [List.isRotated_iff_mod] at hw1
+    rcases hw1 with ⟨n,hn1,hn2⟩
+    set l1 := (List.splitAt n (FreeGroup.reduce L₁)).1 with hl1
+    set l2 := (List.splitAt n (FreeGroup.reduce L₁)).2 with hl2
+    have h2 : (FreeGroup.reduce L₁) = l1++l2 := by simp [hl1,hl2]
+    have h3 : n = l1.length := by rw [hl1]; simp [hn1]
+    have h4 : w = l2++l1 := by rw [← hn2,h2,h3,List.rotate_append_length_eq l1]
+    rw [h4,CycReduce,h2]
+    have h5 := isRed_of_reduce L₁
+    rw [h2] at h5
+    have ⟨h6,h7⟩ := isredsubl _ _ h5
+    rcases largest_cancel l2 l1 h7 h6 with ⟨I,J,K,hIK,hIJ,hJK⟩
+    rw [hIJ,hJK]
+    have h8 : FreeGroup.invRev J ++ K ++ (I ++ J) = FreeGroup.invRev J ++ (K ++ I) ++ J := by simp
+    have h9 : Uncycle (FreeGroup.invRev J ++ (K ++ I) ++ J) = Uncycle (K++I) := by
+      have := uncycle_conj (FreeGroup.invRev J) (K++I)
+      rwa [FreeGroup.invRev_invRev] at this
+    rw [h8,h9,CycReduce,← List.append_assoc,distrib_reduce]
+    have hI : IsRed I := IsRed.prefix_IsRed I K hIK
+    have hK : IsRed K := IsRed.suffix_IsRed I K hIK
+    rw [equiv_of_reds] at hI hK hIK
+    rw [hI,hK,hIK]
+    rw [hIJ,hJK] at h5
+    have h10 : FreeGroup.invRev J ++ K ++ (I ++ J) = FreeGroup.invRev J ++ (K ++ I) ++ J := by simp
+    rw [h10] at h5
+    have h11 : IsRed (K++I) := by exact IsRed.infix_IsRed (FreeGroup.invRev J) J (K ++ I) h5
+    by_cases hIe : I = []
+    · by_cases hKe : K = []
+      · rw [hIe,hKe]
+      · simp [hIe]; rfl
+    · by_cases hKe : K = []
+      · simp [hKe]; rfl
+      · rw [← equiv_of_reds] at hIK
+        have h1 := IsRed_append_rotation_uncycled I K hIe hKe hIK
+        have h2 := IsRed_append_rotation_uncycled _ _ hKe hIe h11
+        rw [uncycled_iff] at h1 h2
+        rw [h1,h2]
+        exact List.isRotated_append
+  · intro h
+    rw [CycReduce,CycReduce] at h
+    have h1 := conj_if_cyc (FreeGroup.mk (Uncycle (FreeGroup.reduce L₁))) (FreeGroup.mk (Uncycle (FreeGroup.reduce L₂)))
+    rw [FreeGroup.toWord_mk] at h1
+    have h2 : IsRed (Uncycle (FreeGroup.reduce L₁)) := Uncycle_IsRed (FreeGroup.reduce L₁) (isRed_of_reduce L₁)
+    have h3 : IsRed (Uncycle (FreeGroup.reduce L₂)) := Uncycle_IsRed (FreeGroup.reduce L₂) (isRed_of_reduce L₂)
+    rw [equiv_of_reds] at h3
+    rw [h3] at h1
+    have h4 : (∃ wrd, wrd ~r Uncycle (FreeGroup.reduce L₂) ∧ CycRed (FreeGroup.mk (Uncycle (FreeGroup.reduce L₁))) = FreeGroup.mk wrd) := by
+      use Uncycle (FreeGroup.reduce L₁)
+      constructor
+      · exact h
+      · rw [CycRed,FreeGroup.toWord_mk,← CycReduce,← CycReduce,CycReduce_idem]
+    rcases h1 h4 with ⟨g,hg⟩
+    have h5 : IsConj (FreeGroup.mk (Uncycle (FreeGroup.reduce L₁))) (FreeGroup.mk (Uncycle (FreeGroup.reduce L₂))) := by
+      use ⟨g⁻¹,g,inv_mul_cancel g,Eq.symm (eq_mul_inv_of_mul_eq (one_mul g))⟩
+      simp [SemiconjBy,mul_assoc,hg]
+    have hl1u := mk_is_conjugate_to_mk_uncycle (FreeGroup.reduce L₁)
+    have hl2u := mk_is_conjugate_to_mk_uncycle (FreeGroup.reduce L₂)
+    symm at hl2u
+    have h6 := IsConj.trans (IsConj.trans hl1u h5) hl2u
+    rwa [FreeGroup.reduce.self,FreeGroup.reduce.self] at h6
