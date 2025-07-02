@@ -645,6 +645,8 @@ lemma IsRed_append_rotation_uncycled {G: Type*} [DecidableEq G] (l1 l2 : List (G
     simp [Uncycle',hl1e]
     tauto
 
+#eval (Uncycle [(-1, True), (2, False), (-1, False)])
+
 theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
   constructor
   · intro h
@@ -721,3 +723,36 @@ theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)):
     symm at hl2u
     have h6 := IsConj.trans (IsConj.trans hl1u h5) hl2u
     rwa [FreeGroup.reduce.self,FreeGroup.reduce.self] at h6
+
+
+#check conj_iff_cyc'
+example : IsConj (FreeGroup.mk [(1, True), (3, True), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(2, False), (2, False), (3, True)]) := by
+ rw[conj_iff_cyc']
+ dsimp[CycReduce]
+ simp[Uncycle]
+ simp[← List.mem_cyclicPermutations_iff]
+ exact List.mem_of_elem_eq_true rfl
+
+
+open Lean.Elab.Tactic
+
+/-! The following tactic conj_decide, decides if two given words, inputted as lists, are conjugate-/
+
+syntax (name := conj_decide) "conj_decide" : tactic
+
+@[tactic conj_decide]
+def evalApplyConjCycSimp : Tactic := fun _stx => do
+  evalTactic (← `(tactic| rw [conj_iff_cyc']))
+  evalTactic (← `(tactic| dsimp [CycReduce]))
+  evalTactic (← `(tactic| simp [Uncycle]))
+  evalTactic (← `(tactic| simp[← List.mem_cyclicPermutations_iff]))
+  evalTactic (← `(tactic| exact List.mem_of_elem_eq_true rfl))
+
+--an application of the above tactic
+example:  IsConj (FreeGroup.mk [(1, True), (3, True), (4, False), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(4, False), (2, False), (2, False), (3, True)]) := by conj_decide
+
+/-Things that can be improved in the above tactic
+  1. Capacity to handle abstract terms not just concrete examples, expand it to potentially prove results like  (e.g: x::y::ls +++ [x^-1] is conjugate to ls ++ [y]
+  2. Show IsConj to be a decidable instance
+  3. Make it an instance of native decide
+-/
