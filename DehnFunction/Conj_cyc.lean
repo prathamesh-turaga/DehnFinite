@@ -727,12 +727,23 @@ theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)):
 
 #check conj_iff_cyc'
 example : IsConj (FreeGroup.mk [(1, True), (3, True), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(2, False), (2, False), (3, True)]) := by
- rw[conj_iff_cyc']
- dsimp[CycReduce]
- simp[Uncycle]
- simp[← List.mem_cyclicPermutations_iff]
- exact List.mem_of_elem_eq_true rfl
+  rw[conj_iff_cyc']
+  dsimp[CycReduce]
+  simp[Uncycle]
+  simp[← List.mem_cyclicPermutations_iff]
+  exact List.mem_of_elem_eq_true rfl
 
+#eval ([1,2,3] ~r [2,3, -1])
+
+
+section Decidable
+
+instance isConjugateDecidable {α : Type} [DecidableEq α] (l l' : List (α × Bool)) : Decidable (IsConj (FreeGroup.mk l) (FreeGroup.mk l')) := by
+  rw[conj_iff_cyc']
+  dsimp[CycReduce]
+  exact (Uncycle (FreeGroup.reduce l)).isRotatedDecidable (Uncycle (FreeGroup.reduce l'))
+
+end Decidable
 
 open Lean.Elab.Tactic
 
@@ -749,7 +760,8 @@ def evalApplyConjCycSimp : Tactic := fun _stx => do
   evalTactic (← `(tactic| exact List.mem_of_elem_eq_true rfl))
 
 --an application of the above tactic
-example:  IsConj (FreeGroup.mk [(1, True), (3, True), (4, False), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(4, False), (2, False), (2, False), (3, True)]) := by conj_decide
+example:  IsConj (FreeGroup.mk [(1, True), (3, True), (4, False), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(4, False), (2, False), (2, False), (3, True)]) := by native_decide
+
 
 /-Things that can be improved in the above tactic
   1. Capacity to handle abstract terms not just concrete examples, expand it to potentially prove results like  (e.g: x::y::ls +++ [x^-1] is conjugate to ls ++ [y]
