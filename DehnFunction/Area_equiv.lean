@@ -2,6 +2,8 @@ import DehnFunction.Area2
 import DehnFunction.Area1
 import Mathlib.Data.Set.Basic
 
+open FreeGroup.ConjStep
+
 lemma Set.sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a ⊆ b) : sInf b ≤ sInf a := by
   apply le_csInf
   . exact ha
@@ -12,7 +14,7 @@ lemma Set.sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a �
 
 namespace FreeGroup
 
-theorem area1_le_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+theorem Area_le_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
   Area R w ≤ Area' R w := by
     unfold Area'
     by_cases h : {n | step_n R n w 1}.Nonempty
@@ -44,7 +46,7 @@ theorem mem_clos_iff_isProdConj_nonempty {G : Type*} (R : Set (FreeGroup G)) (w 
     use l.length
     use l
 
-theorem Area'_le_area1 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+theorem Area'_le_Area {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
   Area' R w ≤ Area R w := by
   by_cases h_mem : w ∈ Subgroup.normalClosure R
   · have h_nonempty : {n | IsProductOfNConjugates R n w}.Nonempty := by
@@ -71,4 +73,4 @@ theorem Area'_le_area1 {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : 
     simp
 
 theorem Area_eq_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
-  Area R w = Area' R w := le_antisymm (area1_le_Area' R w) (Area'_le_area1 R w)
+  Area R w = Area' R w := le_antisymm (Area_le_Area' R w) (Area'_le_Area R w)

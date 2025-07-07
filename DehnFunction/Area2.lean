@@ -3,7 +3,7 @@ import Mathlib.Data.Nat.Lattice
 import DehnFunction.Conj_cyc
 
 namespace FreeGroup
-
+namespace ConjStep
 def CycPermList {α : Type*} [DecidableEq α] : (relator : FreeGroup α) → List (List (α × Bool)):= fun relator => List.cyclicPermutations (FreeGroup.toWord relator)
 -- This function takes a freeword (if the underlying type for the freegroup is decidable) and gives us all its cyclic permutations as a list of lists.
 
@@ -15,6 +15,8 @@ def CycPerm {α : Type*} [DecidableEq α] (w : FreeGroup α) := list_to_free (Cy
 
 def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
   ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
+
+
 
 theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
     (step R x y) ↔
@@ -75,15 +77,16 @@ def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : �
 
   | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
 
+end ConjStep
 
 noncomputable def Area' {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
   -- (step_n relators n w 1) ∧
-  sInf {n | step_n relators n w 1}
+  sInf {n | ConjStep.step_n relators n w 1}
 
 
 
 
-
+namespace ConjStep
 lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))
 
     : ∀ (l : List (FreeGroup G)), (∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) →
@@ -227,3 +230,4 @@ theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
 
 
   use l
+end ConjStep
