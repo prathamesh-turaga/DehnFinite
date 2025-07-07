@@ -1,27 +1,73 @@
 import Mathlib.Algebra.Group.Subgroup.Ker
-import Mathlib.GroupTheory.PresentedGroup
-import Mathlib.GroupTheory.FreeGroup.Reduce
-import Mathlib.Data.List.Rotate
-import Mathlib.Data.Nat.Find
 import Mathlib.Data.Nat.Lattice
-import DehnFunction.Area1
-import DehnFunction.helper_lemmas
 import DehnFunction.Conj_cyc
 
-
-
+namespace FreeGroup
 
 def CycPermList {α : Type*} [DecidableEq α] : (relator : FreeGroup α) → List (List (α × Bool)):= fun relator => List.cyclicPermutations (FreeGroup.toWord relator)
 -- This function takes a freeword (if the underlying type for the freegroup is decidable) and gives us all its cyclic permutations as a list of lists.
 
 def list_to_free {γ : Type*} (l : List (List (γ × Bool))) : List (FreeGroup γ) := List.map FreeGroup.mk l
-#check list_to_free
 -- Runs through the list of lists from CycPerm and gives us a list of FG elements.
 
 def CycPerm {α : Type*} [DecidableEq α] (w : FreeGroup α) := list_to_free (CycPermList w)
 
 
+def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
+  ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
 
+theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
+    (step R x y) ↔
+  x*y⁻¹ ∈ Group.conjugatesOfSet R ∨ y*x⁻¹ ∈ Group.conjugatesOfSet R := by
+    unfold step
+    apply or_congr
+    . unfold CyclicPermutationsOfRelators
+      unfold Group.conjugatesOfSet
+      rw[ Set.mem_iUnion₂]
+      rw[ Set.mem_iUnion₂]
+      apply exists_congr
+      intro r
+      simp
+      intro h_r
+      apply Iff.symm
+      unfold conjugatesOf
+      simp
+      have h_symm: (∃ c,c * r * c⁻¹ = x * y⁻¹) ↔ (∃ c,x * y⁻¹ =c * r * c⁻¹)  :=by
+        apply Iff.intro
+        · intro a
+          obtain ⟨w, h⟩ := a
+          use w
+          apply Eq.symm
+          exact h
+        · intro a
+          obtain ⟨w, h⟩ := a
+          simp_all only [exists_apply_eq_apply]
+
+      rw[h_symm]
+      apply conj_iff_cyc (x*y⁻¹) r
+    . unfold CyclicPermutationsOfRelators
+      unfold Group.conjugatesOfSet
+      rw[ Set.mem_iUnion₂]
+      rw[ Set.mem_iUnion₂]
+      apply exists_congr
+      intro r
+      simp
+      intro h_r
+      apply Iff.symm
+      unfold conjugatesOf
+      simp
+      have h_symm: (∃ c,c * r * c⁻¹ = y * x⁻¹) ↔ (∃ c,y * x⁻¹ =c * r * c⁻¹)  :=by
+        apply Iff.intro
+        · intro a
+          obtain ⟨w, h⟩ := a
+          use w
+          apply Eq.symm
+          exact h
+        · intro a
+          obtain ⟨w, h⟩ := a
+          simp_all only [exists_apply_eq_apply]
+      rw[h_symm]
+      apply conj_iff_cyc (y*x⁻¹) r
 
 def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
@@ -30,7 +76,7 @@ def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : �
   | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
 
 
-noncomputable def Area2 {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
+noncomputable def Area' {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
   -- (step_n relators n w 1) ∧
   sInf {n | step_n relators n w 1}
 
@@ -94,7 +140,7 @@ theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : Free
   {n | step_n R n w 1} = ∅ → w ∉ Subgroup.normalClosure R := by
   contrapose!
   intro h_mem
-  rw[mem_normalClosure_iff_prod_conj] at h_mem
+  rw[Subgroup.mem_normalClosure_iff_prod_conj] at h_mem
   rcases h_mem with ⟨ l, h_l, h_prod⟩
   use l.length
   simp
@@ -175,7 +221,7 @@ theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
   have h_is_prod : IsProductOfNConjugates R n w := by
     exact step_n_implies_IsProductOfNConjugates R n w h_step_n_path
 
-  rw [mem_normalClosure_iff_prod_conj]
+  rw [Subgroup.mem_normalClosure_iff_prod_conj]
 
   rcases h_is_prod with ⟨l, h_l_conj, h_l_len, h_l_prod⟩
 

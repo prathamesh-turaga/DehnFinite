@@ -1,8 +1,6 @@
 import DehnFunction.Area1
-import Mathlib.Data.List.Basic
 
-open FreeGroup
-
+namespace FreeGroup
 
 variable {α : Type*} [DecidableEq α] {a b : α × Bool} (l l1 l2 : List (α × Bool))
 
@@ -160,7 +158,7 @@ lemma Red.Step.exists_iff_red_pair_exists {α : Type*} [DecidableEq α] (l : Lis
   (∃ l', Red.Step l l') ↔ ∃ (l1 l2 : List (α×Bool)) (x : α) (b : Bool), l = (l1 ++ (x, b) :: (x, !b) :: l2) :=
   ⟨Red.Step.red_pair_exists_if_step l,Red.Step.exists_if_red_pair_exists l⟩
 
-lemma FreeGroup.mk_red_pair (a b : α×Bool) (hab : a.1 = b.1 ∧ a.2 = !b.2) : mk [a,b] = 1 := by
+lemma mk_red_pair (a b : α×Bool) (hab : a.1 = b.1 ∧ a.2 = !b.2) : mk [a,b] = 1 := by
   rw [← toWord_inj]
   simp [hab]
 
@@ -170,7 +168,7 @@ def IsRed : Prop := ∀ J : List (α × Bool), FreeGroup.Red l J → J = l
 namespace IsRed
 
 /--If `l` is reduced, then `reduce l = l`-/
-theorem iff_reduce_self : IsRed l ↔ FreeGroup.reduce l = l := by
+theorem equiv_of_reds : IsRed l ↔ FreeGroup.reduce l = l := by
   constructor
   unfold IsRed; intro hypo
   have this₁ : FreeGroup.Red l (FreeGroup.reduce l) := by exact FreeGroup.reduce.red
@@ -491,7 +489,7 @@ theorem IsRed.iff_IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α ×
       exact ⟨h1,(cons _ (List.cons_ne_nil b bs) h).2⟩
   · intro h
     induction L using IsRed_inductive.induct with
-    | case1 => exact (iff_reduce_self []).mpr rfl
+    | case1 => exact (equiv_of_reds []).mpr rfl
     | case2 b => exact singleton
     | case3 a b as ih =>
       rw [IsRed_inductive] at h
@@ -653,9 +651,6 @@ theorem iff_IsRed_TR (L : List (α × Bool)) : IsRed L ↔ IsRed_TR L := by
 -- lemma append_if_no_red_pair_at_join (h1 : IsRed l1) (h2 : IsRed l2) (h1ne : l1 ≠ []) (h2ne : l2 ≠ []) :
 --   (l1.getLast h1ne).1 ≠ (l2.head h2ne).1 ∨ (l1.getLast h1ne).2 = (l2.head h2ne).2  → IsRed (l1 ++ l2) := by sorry
 
--- prove isred decidable
--- norm l.mk = l.length
-
 theorem iff_mk_norm_eq_length : IsRed l ↔ (mk l).norm = l.length := by
   induction l using IsRed_inductive.induct with
   | case1 => simp [nil]; rfl
@@ -663,14 +658,14 @@ theorem iff_mk_norm_eq_length : IsRed l ↔ (mk l).norm = l.length := by
   | case3 a b as ih =>
     constructor
     · intro h
-      rw [iff_reduce_self] at h
+      rw [equiv_of_reds] at h
       rw [FreeGroup.norm,toWord_mk,h]
     · intro h
       rw [FreeGroup.norm,toWord_mk] at h
       have h1 : Red (a::b::as) (reduce (a::b::as)) := reduce.red
       have h2 := Red.length_eq_iff_eq _ _ h1 (Eq.symm h)
       symm at h2
-      exact (iff_reduce_self (a :: b :: as)).mpr h2
+      exact (equiv_of_reds (a :: b :: as)).mpr h2
 
 instance : Decidable (IsRed l) := decidable_of_decidable_of_iff (iff_mk_norm_eq_length l).symm
 
