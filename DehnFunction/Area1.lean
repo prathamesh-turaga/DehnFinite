@@ -289,3 +289,18 @@ theorem free_grp_eq_zero :
     contradiction
 
 end Area
+
+lemma PresentedGroup.IsProductOfNConjugates_one (hw : PresentedGroup.mk R w = 1) : ∃ n, IsProductOfNConjugates R n w := by
+  rw [mk_eq_one_iff,Subgroup.mem_normalClosure_iff_prod_conj] at hw
+  simp [IsProductOfNConjugates]
+  obtain ⟨w_1, h⟩ := hw
+  obtain ⟨left, right⟩ := h
+  subst right
+  apply Exists.intro
+  · apply Exists.intro
+    · apply And.intro
+      intro c a
+      on_goal 2 => apply And.intro
+      on_goal 3 => {rfl}
+      simp_all only
+      · rfl
