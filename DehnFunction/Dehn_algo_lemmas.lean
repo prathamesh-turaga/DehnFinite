@@ -1,4 +1,4 @@
-import DehnFunction.IsRed
+import DehnFunction.Area_equiv
 
 variable {α G : Type} [DecidableEq α] [Group G] [DecidableEq G]
 
@@ -457,6 +457,182 @@ lemma output_list_correct (rlist : List (FreeGroup α)) (dehn_bound : ℕ → �
       exact hus2 u hu
       exact hA
     · exact (Eq.symm hg)
+
+-- #check FreeGroup.norm
+#check List.rotate_eq_drop_append_take
+#check ConjStep.CycPerm
+lemma ConjStep.cycperm_norm_le (w w' : FreeGroup α) (hw' : w' ∈ ConjStep.CycPerm w) : w'.norm ≤ w.norm := by
+  simp [norm]
+  simp [ConjStep.CycPerm,list_to_free] at hw'
+  rcases hw' with ⟨l,hlw,hlw'⟩
+  have h1 := congrArg toWord hlw'
+  simp at h1
+  simp [CycPermList] at hlw
+  rw [List.isRotated_iff_mod] at hlw
+  rcases hlw with ⟨n,hn1,hn2⟩
+  rw [List.rotate_eq_drop_append_take hn1] at hn2
+  simp [norm,← hn2,hn1,← h1]
+  exact Red.length_le (reduce.red)
+
+def ConjStep.step_n' (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
+  match n with
+  | 0 => w1 = w2
+  | n+1 => ∃ y, step_n' relators n w1 y ∧ step relators y w2
+
+lemma ConjStep.step_n_eq_step_n' (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) :
+  step_n relators n w1 w2 ↔ step_n' relators n w1 w2 := by
+  -- induction n using Nat.strong_induction_on generalizing w1 w2 with
+  -- | h k ih =>
+  --   cases k with
+  --   | zero => simp [step_n,step_n']
+  --   | succ p =>
+  --     constructor
+  --     · simp [step_n,step_n']
+  --       intro g hg1 hg2
+  --       have h1 := ih p (by linarith)
+  --       sorry
+  --     · sorry
+  induction n using Nat.strong_induction_on generalizing w1 w2 with
+  | h k ih =>
+    cases k with
+    | zero => simp [step_n,step_n']
+    | succ p =>
+      cases p with
+      | zero => simp [step_n,step_n']
+      | succ q =>
+        constructor
+        · rw [step_n,step_n',forall_exists_index]
+          intro g ⟨hg1,hg2⟩
+          have h1 := (ih (q+1) (by linarith) g w2).mp hg2
+          rw [step_n'] at h1
+          rcases h1 with ⟨y,hy1,hy2⟩
+          have h2 := (ih q (by linarith) g y).mpr hy1
+          have h3 : step_n relators (q+1) w1 y := by use g
+          have h4 := (ih (q+1) (by linarith) w1 y).mp h3
+          use y
+        · rw [step_n,step_n',forall_exists_index]
+          intro g ⟨hg1,hg2⟩
+          have h1 := (ih (q+1) (by linarith) w1 g).mpr hg1
+          rw [step_n] at h1
+          rcases h1 with ⟨y,hy1,hy2⟩
+          have h2 := (ih q (by linarith) y g).mp hy2
+          have h3 : step_n' relators (q+1) y w2 := by use g
+          have h4 := (ih (q+1) (by linarith) y w2).mpr h3
+          use y
+#check ConjStep.step_iff_conjugate
+-- #check Uncycle.isConj_to_self
+lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c⁻¹) := by
+  have h1 := Uncycle.property w.toWord
+  rcases h1 with ⟨U,V,huv,huv1⟩
+  have hv : V = invRev U := by
+    rw [← mul_mk] at huv1
+
+
+
+
+
+
+
+
+
+  -- have h1 : IsConj w (c*w*c⁻¹) := by simp
+  -- nth_rw 1 [← mk_toWord (x:=w), ← mk_toWord (x:=c*w*c⁻¹), conj_iff_cyc'] at h1
+  -- have h2 : (invRev c.toWord) = reduce (invRev c.toWord) := by
+  --   symm
+  --   rw [← IsRed.equiv_of_reds]
+  --   exact IsRed.invRev_IsRed c.toWord (IsRed.toWord c)
+  -- simp [toWord_mul] at h1
+  -- rw [h2,reduce_append_reduce_reduce] at h1
+
+  simp [CycPerm,list_to_free,CycPermList]
+  -- have h1 : (invRev c.toWord) = reduce (invRev c.toWord) := by
+  --   symm
+  --   rw [← IsRed.equiv_of_reds]
+  --   exact IsRed.invRev_IsRed c.toWord (IsRed.toWord c)
+  -- rw [h1]
+  have h2 := cyc_if_conj_list (c*w*c⁻¹) c⁻¹
+  group at h2
+  rcases h2 with ⟨l,hl1,hl2⟩
+  use l
+  constructor
+  · convert hl1; group
+  · simp [← toWord_inj]
+
+
+
+  -- use w.toWord
+  -- simp [mk_toWord]
+  -- by_cases hw : IsCycReduced w.toWord
+  -- · have h2 := cycred_conj_to_cyc _ _ hw (IsRed.toWord c)
+  --   symm at h2
+  --   apply List.IsRotated.trans h2
+
+  --   sorry
+  -- · sorry
+  -- have h2 := cyc_if_conj_list w c
+  -- rcases h2 with ⟨l,hl1,hl2⟩
+  -- simp [toWord_mul] at hl2
+  -- rw [h1,reduce_append_reduce_reduce] at hl2
+
+
+  -- simp [CycPerm,list_to_free,CycPermList,toWord_mul]
+  -- have h1 : (invRev c.toWord) = reduce (invRev c.toWord) := by
+  --   symm
+  --   rw [← IsRed.equiv_of_reds]
+  --   exact IsRed.invRev_IsRed c.toWord (IsRed.toWord c)
+  -- rw [h1]
+  -- rcases IsRed.append_largest_cancel (c.toWord) w.toWord (IsRed.toWord c) (IsRed.toWord w) with ⟨l1,l2,l3,h13,h12,h23⟩
+  -- rw [h12,h23]
+  -- have h2 : reduce (l1 ++ l2 ++ (invRev l2 ++ l3)) = reduce (l1++l3) := by
+  --   have : l1 ++ l2 ++ (invRev l2 ++ l3) = l1 ++ (l2 ++ invRev l2) ++ l3 := by simp
+  --   rw [this,reduce_over_append_three,reduce_inv]
+  --   simp [reduce_append_reduce_reduce, (IsRed.equiv_of_reds _).mp h13]
+  -- rw [h2,reduce_append_reduce_reduce,invRev_append]
+  -- rcases IsRed.append_largest_cancel l3 (invRev (l1++l2)) (IsRed.suffix_IsRed l1 l3 h13) (by rw [← h12]; exact IsRed.invRev_IsRed c.toWord (IsRed.toWord c)) with ⟨l4,l5,l6,h46,h45,h56⟩
+  -- rw [h45,h56]
+  -- have h3 : reduce (l1 ++ (l4 ++ l5) ++ (invRev l5 ++ l6)) = l1++l4++l6 := by
+  --   have : (l1 ++ (l4 ++ l5) ++ (invRev l5 ++ l6)) = (l1 ++ l4 ++ (l5 ++ invRev l5) ++ l6) := by simp
+  --   rw [this,reduce_over_append_three,reduce_inv]
+  --   simp [reduce_append_reduce_reduce,← List.append_assoc]
+  --   rw [← IsRed.equiv_of_reds]
+  --   by_cases h4e : l4 = []
+  --   · simp [h4e] at *
+
+  --     sorry
+  --   · exact IsRed.app_red_still_red l1 l4 l6 (IsRed.prefix_IsRed l1 l3 h13) (IsRed.prefix_IsRed l4 l6 h46) (IsRed.suffix_IsRed l4 l6 h46) (by rw [h45,← List.append_assoc] at h13;exact IsRed.prefix_IsRed (l1 ++ l4) l5 h13) h46 h4e
+
+lemma word_stepn_norm (w wn : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.step_n {x | x ∈ rlist} gn w wn) :
+  norm (wn) ≤ norm w + (list_max_norm rlist)*gn := by
+  rw [ConjStep.step_n_eq_step_n'] at hw
+  induction gn generalizing wn with
+  | zero =>
+    simp [ConjStep.step_n'] at hw; simp [hw]
+  | succ n ih =>
+    simp [ConjStep.step_n'] at hw
+    rcases hw with ⟨g,hgw,hgwn⟩
+    have h1 := ih g hgw
+    rw [ConjStep.step_iff_conjugate] at hgwn
+    rcases hgwn with h2|h2
+    · rw [Group.mem_conjugatesOfSet_iff] at h2
+      rcases h2 with ⟨r,hrs,hrg⟩
+      rw [isConj_iff] at hrg
+      rcases hrg with ⟨c,hc⟩
+      have h3 : wn = c*r⁻¹*c⁻¹*g := by
+        rw [← inv_inj,← mul_left_cancel_iff (a:=g),← hc]
+        group
+      rw [h3]
+      have h4 := FreeGroup.norm_mul_le (c*r⁻¹*c⁻¹) g
+      have h5 : (c * r⁻¹ * c⁻¹ * g).norm ≤ (c * r⁻¹ * c⁻¹).norm + w.norm + list_max_norm rlist * n := by linarith
+      have h6 : (c * r⁻¹ * c⁻¹).norm ≤ r.norm := by
+        have h1 : r⁻¹ ∈ ConjStep.CycPerm (c*r⁻¹*c⁻¹) := by
+          simp [ConjStep.CycPerm,ConjStep.list_to_free,ConjStep.CycPermList]
+          use (c⁻¹).toWord++c.toWord++r.toWord
+
+
+      sorry
+    · sorry
+
+-- lemma word_stepn_conj_norm (w : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.step_n {x | x ∈ rlist} gn w wn)
 
 -- rlist needs to be list of relators here
 theorem word_in_reqd_list_aux (rlist : List (FreeGroup α)) (n : ℕ) (dehn_bound : ℕ → ℕ) (w : FreeGroup α) (hw : IsProductOfNConjugates {R | R ∈ rlist} (dehn_bound n) w) :
