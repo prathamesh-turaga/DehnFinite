@@ -58,7 +58,7 @@ lemma Red.two_nil_if_length_lt_two (h : Red [a,b] l) (hl : l.length < 2) :
   rcases h1 with ⟨n,hn⟩
   simp at hn
   have h2 := add_lt_add_right hl (2*n)
-  rw [← hn] at h2
+  rw [hn] at h2
   norm_num at h2
   have hn' : n < 2 := by
     rw [lt_iff_not_ge]
@@ -175,8 +175,7 @@ theorem equiv_of_reds : IsRed l ↔ FreeGroup.reduce l = l := by
   apply hypo at this₁; exact this₁
   intro hypo
   unfold IsRed;
-  intro J
-  intro are_rel_by_red
+  intro J are_rel_by_red
   have this₂ : FreeGroup.Red J (FreeGroup.reduce J) := by exact FreeGroup.reduce.red
   have RLJ : FreeGroup.Red l J := by exact are_rel_by_red
   apply FreeGroup.reduce.eq_of_red at are_rel_by_red
@@ -221,7 +220,7 @@ theorem singleton : IsRed [a] := by
 /--If `[a,b]` is reduced, then `a ≠ b⁻¹`-/
 theorem two (hab : IsRed [a,b]) : (a.1 ≠ b.1 ∨ a.2 = b.2) := by
   by_contra h
-  push_neg at h
+  push Not at h
   rw [← Bool.eq_not] at h
   dsimp [IsRed] at hab
   specialize hab []
@@ -237,14 +236,13 @@ lemma two_not_if_red_pair (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   ¬IsRed [a,b] := by
   contrapose hab
   rw [not_and_or]
-  push_neg at hab
   convert two hab; simp
 
 lemma two_if_not_red_pair (hab : a.1 ≠ b.1) :
   IsRed [a,b] := by
   contrapose hab
   rw [IsRed] at hab
-  push_neg at *
+  push Not at *
   rcases hab with ⟨p,hp1,hp2⟩
   exact (Red.two_nil_and_red_pair_if_not_self p hp1 hp2).2.1
 
@@ -252,7 +250,7 @@ lemma two_if_not_red_pair' (hab : a.2 = b.2) :
   IsRed [a,b] := by
   contrapose hab
   rw [IsRed] at hab
-  push_neg at *
+  push Not at *
   rcases hab with ⟨p,hp1,hp2⟩
   rw [← Bool.eq_not_iff]
   exact (Red.two_nil_and_red_pair_if_not_self p hp1 hp2).2.2
@@ -312,7 +310,7 @@ theorem cons_cons (h : IsRed (a::b::l)) :
     constructor
     · exact tail (b :: hd :: tl) h
     · by_contra h1
-      push_neg at h1
+      push Not at h1
       have h4 : Red (a::b::hd::tl) (hd::tl) := by
         apply Red.Step.to_red
         rw [← Bool.eq_not] at h1
@@ -345,7 +343,6 @@ lemma not_if_red_pair_suffix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   | nil => simp [two_not_if_red_pair hab]
   | cons x xs ih =>
     contrapose ih
-    push_neg at *
     exact tail (xs ++ [a, b]) ih
 
 /--`l` is not reduced if its prefix is a reducible pair-/
@@ -356,7 +353,6 @@ lemma not_if_red_pair_prefix (hab : a.1 = b.1 ∧ a.2 = !b.2) :
   | append_singleton l x ih =>
     rw [← List.append_assoc]
     contrapose ih
-    push_neg at *
     exact prefix_IsRed ([a, b] ++ l) [x] ih
 
 /--`l` is not reduced if it contains is a reducible pair-/
@@ -373,7 +369,6 @@ lemma not_if_contains_red_pair (hab : a.1 = b.1 ∧ a.2 = !b.2) :
       have h2 : x :: xs ++ [a, b] ++ (ys ++ [y]) = [x] ++ xs ++ [a, b] ++ ys ++ [y] := by simp
       rw [h2]
       contrapose ih
-      push_neg at *
       exact prefix_IsRed ([x] ++ xs ++ [a, b] ++ ys) [y] ih
 
 /--`l` is not reduced iff it contains a reducible pair-/
@@ -382,7 +377,7 @@ theorem not_iff_red_pair_exists :
   constructor
   · intro hl
     rw [iff_noStep] at hl
-    push_neg at hl
+    push Not at hl
     rw [Red.Step.exists_iff_red_pair_exists] at hl
     exact hl
   · intro hl
@@ -401,7 +396,7 @@ theorem cons_if_not_red_pair (hl : IsRed (b::l)) (hab : a.1 ≠ b.1) :
   | cons x xs ih =>
     contrapose hl
     rw [iff_noStep] at hl ⊢
-    push_neg at hl ⊢
+    push Not at hl ⊢
     rw [Red.Step.exists_iff_red_pair_exists] at hl ⊢
     rcases hl with ⟨l1,l2,y,c,hl⟩
     match l1 with
@@ -424,7 +419,7 @@ theorem cons_if_not_red_pair' (hl : IsRed (b::l)) (hab : a.2 = b.2) :
   | cons x xs ih =>
     contrapose hl
     rw [iff_noStep] at hl ⊢
-    push_neg at hl ⊢
+    push Not at hl ⊢
     rw [Red.Step.exists_iff_red_pair_exists] at hl ⊢
     rcases hl with ⟨l1,l2,y,c,hl⟩
     match l1 with
@@ -516,7 +511,7 @@ def IsRed_TR (L : List (α×Bool)) : Prop :=
 lemma IsRed_TR.nil {α : Type*} [DecidableEq α] : IsRed_TR ([] : List (α×Bool)) := by simp [IsRed_TR]
 
 lemma IsRed_TR.singleton {α : Type*} [DecidableEq α] {a : α×Bool} : IsRed_TR [a] := by
-  simp [IsRed_TR,List.reverseRecOn]
+  simp [IsRed_TR,List.reverseRecOn, List.reverseRec]
 
 lemma IsRed_TR.concat_concat_iff : IsRed_TR (l++[b]) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) ↔ IsRed_TR (l ++ [b] ++ [a]) := by
   constructor

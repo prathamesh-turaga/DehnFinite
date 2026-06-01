@@ -20,8 +20,8 @@ lemma Uncycle.isRed_IsRed : IsRed L → IsRed (Uncycle L) := by
   unfold IsRed at hypo
   unfold IsRed
   by_contra
-  expose_names; simp at h
-  rcases h with ⟨L', h₁,h₂⟩;
+  expose_names; simp_all
+  rcases this with ⟨L', h₁,h₂⟩;
   apply Uncycle.property at L; rcases L with ⟨U,V,p₁,p₂⟩
   rw [<- FreeGroup.Red.append_append_left_iff U] at h₁
   have tempp : FreeGroup.Red V V := by exact FreeGroup.Red.refl
@@ -52,7 +52,7 @@ lemma join_at_nonempty_left (hQ : IsRed Q) (h₁ : P = []) : IsRed (P ++ Q) := b
 
 omit [DecidableEq α] in
 lemma join_at_nonempty_right (hP : IsRed P) (h₂ : Q = []) : IsRed (P ++ Q) := by
-  rw [h₂]; simp [List.nil_append]; exact hP
+  rw [h₂]; simp; exact hP
 
 lemma append_IsRed_IsRed_if (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2  → IsRed (P ++ Q) := by
   induction P generalizing Q with
@@ -82,7 +82,7 @@ lemma append_IsRed_IsRed_if (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h�
       apply ih at hypo_last
       rw [←this₁] at hP
       rw [IsRed.cons_iff_not_red_pair _ h] at hP
-      exact (IsRed.cons_iff_not_red_pair (tail++Q) (List.append_ne_nil_of_left_ne_nil h Q)).mpr ⟨hypo_last,by convert hP.2 using 2 <;> simp [List.head_append,h]⟩
+      exact (IsRed.cons_iff_not_red_pair (tail++Q) (List.append_ne_nil_of_left_ne_nil h Q)).mpr ⟨hypo_last,by convert hP.2 using 2 <;> simp [h]⟩
 
 lemma invRev_IsRed (hl : IsRed l) : IsRed (FreeGroup.invRev l) := by
   induction l with
@@ -154,7 +154,7 @@ lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : Lis
         use Q.tail
         simp
         constructor
-        · rw [← List.head_cons_tail Q hQ] at h₂
+        · rw [← List.cons_head_tail hQ] at h₂
           exact IsRed.tail Q.tail h₂
         · rw [FreeGroup.invRev_singleton]
           simp [hg]
@@ -163,7 +163,7 @@ lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : Lis
         use Q
         simp
         rw [not_and_or,Bool.eq_not_iff] at hg
-        push_neg at hg
+        push Not at hg
         exact (IsRed.cons_iff_not_red_pair Q hQ).mpr ⟨h₂,hg⟩
   | case3 g h gs ih =>
     rw [IsRed.cons_cons_iff_not_red_pair] at h₁
@@ -202,7 +202,7 @@ lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : Lis
           constructor
           · simp [hae] at hac
             rw [not_and_or,Bool.eq_not_iff] at hgc
-            push_neg at hgc
+            push Not at hgc
             exact (IsRed.cons_cons_iff_not_red_pair js).mpr ⟨hac,hgc⟩
           · simp [hab,hbc]
     · use g::a
@@ -210,11 +210,12 @@ lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : Lis
       use c
       simp
       constructor
-      · have h1 : (a++c).head (List.append_ne_nil_of_left_ne_nil hae c) = (h::gs).head (List.cons_ne_nil h gs) := by
-          simp_rw [hab]
-          rw [List.head_append_left (hae),List.head_append_of_ne_nil hae]
-        rw [List.head_cons] at h1
-        rw [← h1] at h₁
+      · have h43: (a ++ c).head (List.append_ne_nil_of_left_ne_nil hae c) = h := by
+          dsimp [List.head_append_left (hae)]
+          have h_head := congr_arg (List.head ·) hab
+
+        rw [List.head_cons] at h43
+        rw [← h43] at h₁
         rw [IsRed.cons_iff_not_red_pair]
         exact ⟨hac,h₁.2⟩
       · exact ⟨hab,hbc⟩

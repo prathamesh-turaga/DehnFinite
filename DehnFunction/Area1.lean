@@ -7,6 +7,7 @@ import Mathlib.Tactic
 
 variable {G: Type*} (R : Set (FreeGroup G)) (n : ℕ) (w : FreeGroup G)
 
+
 /--
 R - subset of FreeGroup G
 w - word in FreeGroup G
@@ -15,6 +16,8 @@ n - natural number
 This predicate states that the word `w` is a product of `n` conjugates of elements from the set `R`.
 
 -/
+
+
 def IsProductOfNConjugates : Prop :=
   ∃ (l : List (FreeGroup G)),(∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) ∧
     l.length = n ∧ w = l.prod
@@ -141,8 +144,7 @@ lemma Group.list_prod_inv (l : List G) :
   | nil =>
     simp
   | cons hd tl ih =>
-    simp [List.prod_cons, mul_inv_rev, List.map_cons, List.reverse_cons,List.prod_append, List.prod_singleton]
-    rw [ih]
+    simp [List.prod_cons, mul_inv_rev, List.map_cons, List.reverse_cons,List.prod_append, ih]
 
 lemma Group.conjugatesOfSet_of_empty :
   Group.conjugatesOfSet (∅: Set G) = ∅ := by
@@ -296,11 +298,4 @@ lemma PresentedGroup.IsProductOfNConjugates_one (hw : PresentedGroup.mk R w = 1)
   obtain ⟨w_1, h⟩ := hw
   obtain ⟨left, right⟩ := h
   subst right
-  apply Exists.intro
-  · apply Exists.intro
-    · apply And.intro
-      intro c a
-      on_goal 2 => apply And.intro
-      on_goal 3 => {rfl}
-      simp_all only
-      · rfl
+  use w_1

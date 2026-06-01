@@ -59,7 +59,7 @@ theorem Uncycle.property (L : List (α × Bool)) :
         dsimp [U, V]
         rw [h_def, h_middle_decomp]
         rw [h_L_form]
-        simp only [List.append_assoc, List.cons_append, ← h_middle_decomp]
+        simp only [List.append_assoc, ← h_middle_decomp]
         rw [show xs = middle ++ [last]
         by
           change xs = xs.dropLast ++ [xs.getLast _]
@@ -67,7 +67,9 @@ theorem Uncycle.property (L : List (α × Bool)) :
             Eq.symm
               (List.dropLast_concat_getLast
                 (of_eq_true
-                  (Eq.trans (congrArg Not (eq_false' fun h ↦ List.noConfusion h))
+                  (Eq.trans
+                    (congrArg Not
+                      (eq_false' fun h ↦ False.elim (noConfusion_of_Nat List.ctorIdx h)))
                     not_false_eq_true)))
           ]
         simp
@@ -98,7 +100,7 @@ theorem Uncycle.property (L : List (α × Bool)) :
     else
       have h_def : Uncycle L = L := by
         rw [h_L_eq]
-        simp [Uncycle, h_if]
+        simp [Uncycle]
         aesop
       use [], []
       rw[← h_L_eq]
@@ -184,10 +186,8 @@ lemma conj_singleton (a : α) (b : Bool) :
   | cons hd tl =>
     have this₁: (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl ++ [(a, !b)]).dropLast := rfl
     have this₂ : (hd :: tl ++ [(a, !b)]).dropLast = (hd :: tl) := by exact List.dropLast_concat
-    have this₃ : (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl) := by exact this₂
+    have this₃ : (hd :: (tl ++ [(a, !b)])).dropLast = (hd :: tl) := by exact (this₂)
     simp [Uncycle]
-    have last_eq : ((hd :: tl) ++ [(a, !b)]).getLast (by simp) = (a, !b) := by simp [this₁, this₂, this₃]
-    have cond_true : a = a ∧ b ≠ !b := by simp [Bool.not_eq_true']
     rw [this₃]
 
 theorem conj :
@@ -196,7 +196,7 @@ theorem conj :
     induction P with
     | nil =>
       intro Q
-      simp [Uncycle]
+      simp
     | cons head tail ih =>
       intro Q
       rw[FreeGroup.invRev_cons]
@@ -224,7 +224,7 @@ theorem length_le (L : List (α × Bool)) :
   | x :: y :: ys =>
     let xs := y :: ys
     have hL_form : L = x :: xs := by simp [hL, xs]
-    let last := xs.getLast (by simp [hL, xs])
+    let last := xs.getLast (by simp [xs])
     let middle := xs.dropLast
     if h_if : x.1 = last.1 ∧ x.2 ≠ last.2 then
       have h_def : Uncycle L = Uncycle middle := by
@@ -247,19 +247,20 @@ theorem length_le (L : List (α × Bool)) :
             Eq.symm
               (List.dropLast_concat_getLast
                 (of_eq_true
-                  (Eq.trans (congrArg Not (eq_false' fun h ↦ List.noConfusion h))
+                  (Eq.trans
+                    (congrArg Not
+                      (eq_false' fun h ↦ False.elim (noConfusion_of_Nat List.ctorIdx h)))
                     not_false_eq_true)))
       rw [← hL]
       rw [h_def]
       have ih := length_le middle
       have h_middle_len_lt : middle.length < L.length := by
-        simp [hL_form, last, middle, xs]
-        linarith
+        simp [hL_form, middle, xs]
       linarith
     else
       have h_def : Uncycle L = L := by
         unfold Uncycle
-        simp [h_if]
+        simp
         aesop
       rw [← hL]
       rw [h_def]
@@ -289,7 +290,7 @@ theorem isUncycled_iff : IsUncycled L ↔ Uncycle L = L := by
   | x :: y :: ys =>
     let xs := y :: ys
     have hL_form : L = x :: xs := by simp [hL, xs]
-    let last := xs.getLast (by simp [hL, xs])
+    let last := xs.getLast (by simp [xs])
     let middle := xs.dropLast
     rw [← hL]
     if h_if : x.1 = last.1 ∧ x.2 ≠ last.2 then
@@ -300,7 +301,7 @@ theorem isUncycled_iff : IsUncycled L ↔ Uncycle L = L := by
           unfold IsUncycled at h_eq
           rw[hL] at h_eq
           simp at h_eq
-          have h_last_eq : ((y :: ys).getLast (by simp [xs])) = last := by
+          have h_last_eq : ((y :: ys).getLast (by simp)) = last := by
             simp [last, xs]
           rw[h_last_eq] at h_eq
           have h_contr : ¬ (x.1 = last.1 ∧ x.2 ≠ last.2) := by
@@ -330,7 +331,9 @@ theorem isUncycled_iff : IsUncycled L ↔ Uncycle L = L := by
             Eq.symm
               (List.dropLast_concat_getLast
                 (of_eq_true
-                  (Eq.trans (congrArg Not (eq_false' fun h ↦ List.noConfusion h))
+                  (Eq.trans
+                    (congrArg Not
+                      (eq_false' fun h ↦ False.elim (noConfusion_of_Nat List.ctorIdx h)))
                     not_false_eq_true)))
         have h_impossible_equality : L = Uncycle middle := by rw [← h_eq, h_uncycle_eval]
         have h_contradiction : False := by
@@ -338,27 +341,24 @@ theorem isUncycled_iff : IsUncycled L ↔ Uncycle L = L := by
           have h_len_lt : (Uncycle middle).length < L.length := by
             have h_uncycle_len_le : (Uncycle middle).length ≤ middle.length := Uncycle.length_le middle
             have h_middle_len : middle.length < L.length := by
-              simp [hL_form, last, middle, xs]
-              linarith
+              simp [hL_form, middle, xs]
             linarith
           linarith
         exfalso
         exact h_contradiction
     else
-      simp [Uncycle, IsUncycled, h_if]
+      simp [IsUncycled]
       apply iff_of_true
       · simp [hL]
         change ¬x.1 = (last).1 ∨ x.2 = (last).2
-        push_neg at h_if
+        push Not at h_if
         exact Decidable.not_or_of_imp h_if
       · rw [Uncycle.eq_def]
         simp [hL]
         rw[← hL]
         change  x.1 = (last).1 → ¬x.2 = (last).2 → Uncycle middle = L
-        intro h_1
-        intro h_2
+        intro h_1 h_2
         have h_contr: (x.1 = (last).1 ∧ x.2 ≠ last.2) := by
-          push_neg at h_2
           exact And.intro h_1 h_2
         contradiction
 
@@ -375,7 +375,7 @@ theorem Uncycle.isConj_to_self (L : List (α × Bool)) : IsConj (FreeGroup.mk L)
   | x :: y :: ys =>
     let xs := y :: ys
     have hL_form : L = x :: xs := by simp [hL, xs]
-    let last := xs.getLast (by simp [hL, xs])
+    let last := xs.getLast (by simp [xs])
     let middle := xs.dropLast
     if h_if : x.1 = last.1 ∧ x.2 ≠ last.2 then
       have h_list: L = x :: middle ++ [last] := by
@@ -384,7 +384,9 @@ theorem Uncycle.isConj_to_self (L : List (α × Bool)) : IsConj (FreeGroup.mk L)
           Eq.symm
             (List.dropLast_concat_getLast
               (of_eq_true
-                (Eq.trans (congrArg Not (eq_false' fun h ↦ List.noConfusion h)) not_false_eq_true)))]
+                (Eq.trans
+                  (congrArg Not (eq_false' fun h ↦ False.elim (noConfusion_of_Nat List.ctorIdx h)))
+                  not_false_eq_true)))]
         rfl
       have h_lastne : last.2 = !x.2 := by
         refine Bool.eq_not.mpr ?_
@@ -429,7 +431,7 @@ theorem Uncycle.isConj_to_self (L : List (α × Bool)) : IsConj (FreeGroup.mk L)
         rw[hL]
         simp
         change ¬ x.1 = (last).1 ∨ x.2 = (last).2
-        push_neg at h_if
+        push Not at h_if
         exact Decidable.not_or_of_imp h_if
       rw [h_uncycle_def]
 termination_by L.length
