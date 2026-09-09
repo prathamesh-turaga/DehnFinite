@@ -1,5 +1,5 @@
 import DehnFunction.Area1
-import DehnFunction.Cyc_conj
+import DehnFunction.CycConj
 import DehnFunction.IsRed
 
 namespace FreeGroup
@@ -136,7 +136,7 @@ lemma append_or_inv_append (L₁ L₂ : List (α × Bool)) (h₁ : IsCycReduced 
         aesop
 
 lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : List (α × Bool)), (IsRed (I++K)) ∧ (P = I ++ J)∧(Q = (FreeGroup.invRev J)++K) := by
-  induction P using IsRed_inductive.induct with
+  induction P using IsRedInductive.induct with
   | case1 =>
     use []
     use []
@@ -211,12 +211,13 @@ lemma append_largest_cancel (h₁ : IsRed P) (h₂ : IsRed Q) : ∃ (I J K : Lis
       simp
       constructor
       · have h43: (a ++ c).head (List.append_ne_nil_of_left_ne_nil hae c) = h := by
-          dsimp [List.head_append_left (hae)]
-          have h_head := congr_arg (List.head ·) hab
-
-        rw [List.head_cons] at h43
+          obtain ⟨x, xs, rfl⟩ := List.exists_cons_of_ne_nil hae
+          rw [List.head_append_left hae, List.head_cons]
+          rw [List.cons_append] at hab
+          injection hab with hx _
+          exact hx.symm
         rw [← h43] at h₁
-        rw [IsRed.cons_iff_not_red_pair]
+        rw [IsRed.cons_iff_not_red_pair (a ++ c) (List.append_ne_nil_of_left_ne_nil hae c)]
         exact ⟨hac,h₁.2⟩
       · exact ⟨hab,hbc⟩
 
@@ -274,16 +275,15 @@ lemma distrib_reduce : FreeGroup.reduce (P++ Q ++ FreeGroup.invRev Q ++ R) = Fre
 lemma IsRed.append_nonempty (h₁ : P ≠ []) (h₂ : Q ≠ []) : IsRed (P ++ Q) → (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2 := by
   intro hypo
   by_contra
-  expose_names
-  simp at h
+  simp at this
   have P_is_like : P = (P.dropLast) ++ [P.getLast h₁] := by exact Eq.symm (List.dropLast_concat_getLast h₁)
   have Q_is_like : Q = [Q.head h₂] ++ Q.tail := by simp
-  have P_end_end : (P.getLast h₁).2 ≠ (Q.head h₂).2 := by simp [h.2]
+  have P_end_end : (P.getLast h₁).2 ≠ (Q.head h₂).2 := by simp [this.2]
   have P_end_end_end : (P.getLast h₁).2 = !(Q.head h₂).2 := by exact Bool.eq_not.mpr P_end_end
   have P_end : [P.getLast h₁] = [((Q.head h₂).1, !(Q.head h₂).2)] := by calc
     [P.getLast h₁] = [((P.getLast h₁).1, (P.getLast h₁).2)] := by simp
     _ = [((Q.head h₂).1, !(Q.head h₂).2)] := by
-      rw [h.1]
+      rw [this.1]
       rw [P_end_end_end]
   have Q_end : [Q.head h₂] = [((Q.head h₂).1, (Q.head h₂).2)] := by simp
   have this₁ : (P ++ Q) = P.dropLast ++ [((Q.head h₂).1, !(Q.head h₂).2)] ++ [((Q.head h₂).1, (Q.head h₂).2)] ++ Q.tail := by
@@ -349,25 +349,18 @@ lemma IsRed.app_red_still_red (hp : IsRed P) (hq : IsRed Q) (hr : IsRed R) (h₁
     | inr h =>
       expose_names
       aesop
-  | inr h =>
+  | inr hPne =>
     cases Rcases with
     | inl h =>
       expose_names
       aesop
-    | inr h =>
-      expose_names
+    | inr hRne =>
       have QRne : Q ++ R ≠ [] := by exact List.append_ne_nil_of_left_ne_nil h₃ R
       have main : (Q ++ R).head QRne= Q.head h₃ := by simp [h₃]
       have this : IsRed (P ++ (Q ++ R)) := by
-        rw [IsRed.append_nonempty_iff]
-        rw [main]
-        rw [<-IsRed.append_nonempty_iff]
+        rw [IsRed.append_nonempty_iff P (Q ++ R) hp h₂ hPne QRne, main,
+          ← IsRed.append_nonempty_iff P Q hp hq hPne h₃]
         exact h₁
-        exact hp
-        exact hq
-        exact h_1
-        exact hp
-        exact h₂
       simp [this]
 
 lemma isCycReduced_cycPerm_IsCycReduced : IsCycReduced (P ++ Q) → IsCycReduced (Q ++ P) := by
@@ -443,6 +436,6 @@ lemma List.append_nonempty (h : P ++ Q ≠ []) : (P ≠ []) ∨ (Q ≠ []) := by
   by_contra
   expose_names
   have : P ++ Q = [] := by calc
-    P ++ Q = [] ++ [] := by rw [h_1.1, h_1.2]
+    P ++ Q = [] ++ [] := by rw [this.1, this.2]
     _ = [] := by simp
   contradiction

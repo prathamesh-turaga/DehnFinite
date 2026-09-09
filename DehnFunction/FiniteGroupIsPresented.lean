@@ -10,6 +10,7 @@ We state this by asserting the existence of a finite generator type `S`,
 and a finite set of relations `R` such that `G` is isomorphic to `PresentedGroup R`.
 
  An inductive predicate defining the 5 allowed relation structures. -/
+
 inductive IsFiniteGroupRelator (G : Type*) [Group G] : FreeGroup G → Prop
   | mul (g h : G) :
       IsFiniteGroupRelator G (of g * of h * (of (g * h))⁻¹)
@@ -86,6 +87,8 @@ def finite_group_is_finitely_presented (G : Type*) [Group G] [Finite G] :
          | of a =>
            have ds: (PresentedGroup.toGroup h  ⟦(FreeGroup.mk [(a, true)])⟧) = a := by
             unfold PresentedGroup.toGroup
+
+
             sorry
            sorry
          | inv_of a h_inv => sorry
@@ -98,5 +101,6 @@ def finite_group_is_finitely_presented (G : Type*) [Group G] [Finite G] :
     unfold PresentedGroup.mk
     unfold FreeGroup.of
     unfold FreeGroup.mk
+
     sorry
     )

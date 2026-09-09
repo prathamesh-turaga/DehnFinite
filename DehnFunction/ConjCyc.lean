@@ -1,4 +1,4 @@
-import DehnFunction.helper_lemmas
+import DehnFunction.HelperLemmas
 
 namespace FreeGroup
 
@@ -55,7 +55,7 @@ theorem reduce_inv' {G: Type*} [DecidableEq G] (A : List (G × Bool)) : FreeGrou
   rw[FreeGroup.toWord_inj, ← FreeGroup.mul_mk, ← FreeGroup.inv_mk]
   exact inv_mul_cancel (FreeGroup.mk A)
 
-theorem cycred_conj_to_cyc' {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_cycred: IsCycReduced B) : ∀ (A : List (G × Bool)), (IsRed A) → Uncycle (FreeGroup.reduce (A ++ B ++ FreeGroup.invRev A)) ~r B := by
+theorem cycred_conj_to_cyc_aux {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_cycred: IsCycReduced B) : ∀ (A : List (G × Bool)), (IsRed A) → Uncycle (FreeGroup.reduce (A ++ B ++ FreeGroup.invRev A)) ~r B := by
   intro A
   induction hA: A.length using Nat.strong_induction_on  generalizing A with
   | h n ih =>
@@ -224,7 +224,7 @@ theorem cycred_conj_to_cyc' {G: Type*} [DecidableEq G] (B: List (G × Bool)) (h_
   exact List.isRotated_append
 
 theorem cycred_conj_to_cyc {G: Type*} [DecidableEq G] (A B: List (G × Bool)) (h_cycred: IsCycReduced B) (h_red: IsRed A): Uncycle (FreeGroup.reduce (A ++ B ++ FreeGroup.invRev A)) ~r B :=
-  cycred_conj_to_cyc' B h_cycred A h_red
+  cycred_conj_to_cyc_aux B h_cycred A h_red
 
 theorem cyc_if_conj_list {G: Type*} [DecidableEq G] (r : FreeGroup G): ∀ (g : FreeGroup G),
   ∃ (L: List (G × Bool)), L ~r (FreeGroup.toWord r)∧  Uncycle ((g*r*(g⁻¹)).toWord) = FreeGroup.reduce (L) := by
@@ -328,7 +328,7 @@ theorem cyc_if_conj_list {G: Type*} [DecidableEq G] (r : FreeGroup G): ∀ (g : 
     rw[h_S_red]
 
 theorem conj_iff_cyc {G: Type*} [DecidableEq G] (w r : FreeGroup G): (∃ (g: FreeGroup G), w = g * r * g⁻¹) ↔
-  ∃ (wrd: List (G × Bool)), wrd ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk wrd := by
+  ∃ (word: List (G × Bool)), word ~r (FreeGroup.toWord r)∧  (CycRed w) = FreeGroup.mk word := by
   constructor
   . intro h_w_conj_r
     rcases h_w_conj_r with ⟨g, h_g⟩
@@ -347,18 +347,18 @@ lemma CycReduce_is_cycreduced {G: Type*} [DecidableEq G] (l : List (G × Bool)) 
   rw [CycReduce]
   have h := IsRed.of_reduce l
   generalize FreeGroup.reduce l = L at *
-  rw [Uncycle_eq_Uncycle']
-  induction L using Uncycle'.induct with
-  | case1 => simp [Uncycle',Uncycle,IsCycReduced,IsRed.nil]
-  | case2 a => simp [Uncycle',Uncycle,IsCycReduced,IsRed.singleton]
+  rw [Uncycle_eq_UncycleAux]
+  induction L using UncycleAux.induct with
+  | case1 => simp [UncycleAux,Uncycle,IsCycReduced,IsRed.nil]
+  | case2 a => simp [UncycleAux,Uncycle,IsCycReduced,IsRed.singleton]
   | case3 a as has ha ih =>
     have h1 := IsRed.tail _ h
-    simp [Uncycle',has,ha]
+    simp [UncycleAux,has,ha]
     have h2 := List.concat_if_not_empty as has
     rw [h2] at h
     exact ih (IsRed.prefix_IsRed _ _ (IsRed.tail _ h))
   | case4 a as has ha =>
-    simp [Uncycle',has,ha]
+    simp [UncycleAux,has,ha]
     constructor
     · exact h
     · rw [← isUncycled_iff]
@@ -377,13 +377,13 @@ lemma IsRed.append_rotation_uncycled {G: Type*} [DecidableEq G] (l1 l2 : List (G
   match l2 with
   | [] => contradiction
   | a::as =>
-    rw [isUncycled_iff,Uncycle_eq_Uncycle']
+    rw [isUncycled_iff,Uncycle_eq_UncycleAux]
     rw [IsRed.append_nonempty_iff _ _ (IsRed.prefix_IsRed l1 (a :: as) hl) (IsRed.suffix_IsRed l1 (a :: as) hl) (hl1e) (by simp)] at hl
     simp at hl
-    simp [Uncycle',hl1e]
+    simp [UncycleAux,hl1e]
     tauto
 
-theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
+theorem isConj_iff_cycReduce_isRotated {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)): IsConj (FreeGroup.mk L₁) (FreeGroup.mk L₂) ↔ CycReduce L₁ ~r CycReduce L₂:= by
   constructor
   · intro h
     rw [IsConj] at h
@@ -446,7 +446,7 @@ theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)):
     have h3 : IsRed (Uncycle (FreeGroup.reduce L₂)) := Uncycle.isRed_IsRed (FreeGroup.reduce L₂) (IsRed.of_reduce L₂)
     rw [IsRed.equiv_of_reds] at h3
     rw [h3] at h1
-    have h4 : (∃ wrd, wrd ~r Uncycle (FreeGroup.reduce L₂) ∧ CycRed (FreeGroup.mk (Uncycle (FreeGroup.reduce L₁))) = FreeGroup.mk wrd) := by
+    have h4 : (∃ word, word ~r Uncycle (FreeGroup.reduce L₂) ∧ CycRed (FreeGroup.mk (Uncycle (FreeGroup.reduce L₁))) = FreeGroup.mk word) := by
       use Uncycle (FreeGroup.reduce L₁)
       constructor
       · exact h
@@ -462,7 +462,7 @@ theorem conj_iff_cyc' {G: Type*} [DecidableEq G] (L₁ L₂ : List (G × Bool)):
     rwa [FreeGroup.reduce.self,FreeGroup.reduce.self] at h6
 
 example : IsConj (FreeGroup.mk [(1, True), (3, True), (2, False), (2, False), (1, False)]) (FreeGroup.mk [(2, False), (2, False), (3, True)]) := by
-  rw[conj_iff_cyc']
+  rw[isConj_iff_cycReduce_isRotated]
   dsimp[CycReduce]
   simp[Uncycle]
   simp[← List.mem_cyclicPermutations_iff]
@@ -473,7 +473,7 @@ example : IsConj (FreeGroup.mk [(1, True), (3, True), (2, False), (2, False), (1
 section Decidable
 
 instance isConjugateDecidable {α : Type} [DecidableEq α] (l l' : List (α × Bool)) : Decidable (IsConj (FreeGroup.mk l) (FreeGroup.mk l')) := by
-  rw[conj_iff_cyc']
+  rw[isConj_iff_cycReduce_isRotated]
   dsimp[CycReduce]
   exact (Uncycle (FreeGroup.reduce l)).isRotatedDecidable (Uncycle (FreeGroup.reduce l'))
 
@@ -487,7 +487,7 @@ syntax (name := conj_decide) "conj_decide" : tactic
 
 @[tactic conj_decide]
 def evalApplyConjCycSimp : Tactic := fun _stx => do
-  evalTactic (← `(tactic| rw [conj_iff_cyc']))
+  evalTactic (← `(tactic| rw [isConj_iff_cycReduce_isRotated]))
   evalTactic (← `(tactic| dsimp [CycReduce]))
   evalTactic (← `(tactic| simp [Uncycle]))
   evalTactic (← `(tactic| simp[← List.mem_cyclicPermutations_iff]))

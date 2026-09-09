@@ -108,25 +108,25 @@ theorem Uncycle.property (L : List (α × Bool)) :
       aesop
   termination_by L.length
 
-def Uncycle' {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
+def UncycleAux {α : Type*} [DecidableEq α] (L : List (α × Bool)) : List (α × Bool) :=
   match L with
   | [] => []
   | a::as =>
     if has:as = [] then [a]
     else if a.1 = (as.getLast has).1 ∧ a.2 ≠ (as.getLast has).2 then
-      Uncycle' (as.dropLast)
+      UncycleAux (as.dropLast)
     else
       L
   termination_by L.length
 
-def Uncycle_eq_Uncycle' {G: Type*} [DecidableEq G] (l : List (G × Bool)) : Uncycle l = Uncycle' l := by
+def Uncycle_eq_UncycleAux {G: Type*} [DecidableEq G] (l : List (G × Bool)) : Uncycle l = UncycleAux l := by
   match l with
-  | [] => simp [Uncycle,Uncycle']
-  | [a] => simp [Uncycle,Uncycle']
+  | [] => simp [Uncycle,UncycleAux]
+  | [a] => simp [Uncycle,UncycleAux]
   | a::b::bs =>
-    simp [Uncycle,Uncycle']
+    simp [Uncycle,UncycleAux]
     congr
-    exact Uncycle_eq_Uncycle' ((b :: bs).dropLast)
+    exact Uncycle_eq_UncycleAux ((b :: bs).dropLast)
   termination_by l.length
 
 def CycRed := FreeGroup.mk (Uncycle (FreeGroup.toWord w))
@@ -474,7 +474,7 @@ theorem cycPerm_is_conj :
     group
   . exact h_n
 
-theorem conj_if_cyc (r : FreeGroup α): (∃ (wrd: List (α × Bool)), wrd ~r (FreeGroup.toWord r) ∧ (CycRed w) = FreeGroup.mk wrd) → (∃ (g: FreeGroup α), w = g * r * g⁻¹)
+theorem conj_if_cyc (r : FreeGroup α): (∃ (word: List (α × Bool)), word ~r (FreeGroup.toWord r) ∧ (CycRed w) = FreeGroup.mk word) → (∃ (g: FreeGroup α), w = g * r * g⁻¹)
    := by
     intro h_exist
     rcases h_exist with ⟨p, h_p_r, h_cyc⟩

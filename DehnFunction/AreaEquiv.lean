@@ -14,17 +14,17 @@ lemma Set.sInf_le_sInf_of_subset {a b : Set ℕ} (ha : a.Nonempty) (h_sub : a �
 
 namespace FreeGroup
 
-theorem Area_le_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
-  Area R w ≤ Area' R w := by
-    unfold Area'
-    by_cases h : {n | step_n R n w 1}.Nonempty
+theorem area_le_areaSteps {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+  area R w ≤ areaSteps R w := by
+    unfold areaSteps
+    by_cases h : {n | StepN R n w 1}.Nonempty
     . apply Set.sInf_le_sInf_of_subset h
       intro n hn_in
       simp
       simp at hn_in
       exact step_n_implies_IsProductOfNConjugates R n w hn_in
-    . have h_empty : {n | step_n R n w 1} = ∅ := Set.not_nonempty_iff_eq_empty.mp h
-      have h_rhs_zero: sInf {n | step_n R n w 1} = 0 := by
+    . have h_empty : {n | StepN R n w 1} = ∅ := Set.not_nonempty_iff_eq_empty.mp h
+      have h_rhs_zero: sInf {n | StepN R n w 1} = 0 := by
         rw [h_empty]
         simp
       rw [h_rhs_zero]
@@ -32,11 +32,11 @@ theorem Area_le_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : F
         apply empty_step R w
         exact h_empty
       simp [h_w_notin]
-      rw [Area.eq_zero_iff R w]
+      rw [area.eq_zero_iff R w]
       right
       exact h_w_notin
 
-theorem mem_clos_iff_isProdConj_nonempty {G : Type*} (R : Set (FreeGroup G)) (w : FreeGroup G)
+theorem mem_normalClosure_iff_isProductOfNConjugates_nonempty {G : Type*} (R : Set (FreeGroup G)) (w : FreeGroup G)
   : {n | IsProductOfNConjugates R n w}.Nonempty ↔ w ∈ Subgroup.normalClosure R := by
   rw[Subgroup.mem_normalClosure_iff_prod_conj]
   constructor
@@ -46,11 +46,11 @@ theorem mem_clos_iff_isProdConj_nonempty {G : Type*} (R : Set (FreeGroup G)) (w 
     use l.length
     use l
 
-theorem Area'_le_Area {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
-  Area' R w ≤ Area R w := by
+theorem areaSteps_le_area {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+  areaSteps R w ≤ area R w := by
   by_cases h_mem : w ∈ Subgroup.normalClosure R
   · have h_nonempty : {n | IsProductOfNConjugates R n w}.Nonempty := by
-      rw [mem_clos_iff_isProdConj_nonempty]
+      rw [mem_normalClosure_iff_isProductOfNConjugates_nonempty]
       exact h_mem
     apply Set.sInf_le_sInf_of_subset h_nonempty
     intro n h_is_prod
@@ -58,19 +58,19 @@ theorem Area'_le_Area {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : F
     simp
     rw [← h_l_len, h_l_prod]
     exact prod_conj_implies_step_n R l h_l_conj
-  · have h_area1_zero : Area R w = 0 := by
-      unfold Area
+  · have h_area1_zero : area R w = 0 := by
+      unfold area
       have h_set_empty : {n | IsProductOfNConjugates R n w} = ∅ := by
         by_contra!
-        rw [mem_clos_iff_isProdConj_nonempty] at this
+        rw [mem_normalClosure_iff_isProductOfNConjugates_nonempty] at this
         exact h_mem this
       rw [h_set_empty]
       exact Nat.sInf_empty
     rw [h_area1_zero]
-    have h_set_empty : {n | step_n R n w 1} = ∅ := step_empty R w h_mem
-    unfold Area'
+    have h_set_empty : {n | StepN R n w 1} = ∅ := step_empty R w h_mem
+    unfold areaSteps
     rw [h_set_empty]
     simp
 
-theorem Area_eq_Area' {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
-  Area R w = Area' R w := le_antisymm (Area_le_Area' R w) (Area'_le_Area R w)
+theorem area_eq_areaSteps {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
+  area R w = areaSteps R w := le_antisymm (area_le_areaSteps R w) (areaSteps_le_area R w)

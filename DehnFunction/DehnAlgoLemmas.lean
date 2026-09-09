@@ -1,4 +1,4 @@
-import DehnFunction.Area_equiv
+import DehnFunction.AreaEquiv
 
 variable {α G : Type} [DecidableEq α] [Group G] [DecidableEq G]
 
@@ -463,7 +463,7 @@ lemma output_list_correct (rlist : List (FreeGroup α)) (dehn_bound : ℕ → �
 #check ConjStep.CycPerm
 lemma ConjStep.cycperm_norm_le (w w' : FreeGroup α) (hw' : w' ∈ ConjStep.CycPerm w) : w'.norm ≤ w.norm := by
   simp [norm]
-  simp [ConjStep.CycPerm,list_to_free] at hw'
+  simp [ConjStep.CycPerm,listToFree] at hw'
   rcases hw' with ⟨l,hlw,hlw'⟩
   have h1 := congrArg toWord hlw'
   simp at h1
@@ -474,20 +474,20 @@ lemma ConjStep.cycperm_norm_le (w w' : FreeGroup α) (hw' : w' ∈ ConjStep.CycP
   simp [norm,← hn2,hn1,← h1]
   exact Red.length_le (reduce.red)
 
-def ConjStep.step_n' (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
+def ConjStep.StepNSnoc (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
   | 0 => w1 = w2
-  | n+1 => ∃ y, step_n' relators n w1 y ∧ step relators y w2
+  | n+1 => ∃ y, StepNSnoc relators n w1 y ∧ Step relators y w2
 
-lemma ConjStep.step_n_eq_step_n' (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) :
-  step_n relators n w1 w2 ↔ step_n' relators n w1 w2 := by
+lemma ConjStep.stepN_eq_stepNSnoc (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) :
+  StepN relators n w1 w2 ↔ StepNSnoc relators n w1 w2 := by
   -- induction n using Nat.strong_induction_on generalizing w1 w2 with
   -- | h k ih =>
   --   cases k with
-  --   | zero => simp [step_n,step_n']
+  --   | zero => simp [StepN,StepNSnoc]
   --   | succ p =>
   --     constructor
-  --     · simp [step_n,step_n']
+  --     · simp [StepN,StepNSnoc]
   --       intro g hg1 hg2
   --       have h1 := ih p (by linarith)
   --       sorry
@@ -495,28 +495,28 @@ lemma ConjStep.step_n_eq_step_n' (relators : Set (FreeGroup α)) (n : ℕ) (w1 w
   induction n using Nat.strong_induction_on generalizing w1 w2 with
   | h k ih =>
     cases k with
-    | zero => simp [step_n,step_n']
+    | zero => simp [StepN,StepNSnoc]
     | succ p =>
       cases p with
-      | zero => simp [step_n,step_n']
+      | zero => simp [StepN,StepNSnoc]
       | succ q =>
         constructor
-        · rw [step_n,step_n',forall_exists_index]
+        · rw [StepN,StepNSnoc,forall_exists_index]
           intro g ⟨hg1,hg2⟩
           have h1 := (ih (q+1) (by linarith) g w2).mp hg2
-          rw [step_n'] at h1
+          rw [StepNSnoc] at h1
           rcases h1 with ⟨y,hy1,hy2⟩
           have h2 := (ih q (by linarith) g y).mpr hy1
-          have h3 : step_n relators (q+1) w1 y := by use g
+          have h3 : StepN relators (q+1) w1 y := by use g
           have h4 := (ih (q+1) (by linarith) w1 y).mp h3
           use y
-        · rw [step_n,step_n',forall_exists_index]
+        · rw [StepN,StepNSnoc,forall_exists_index]
           intro g ⟨hg1,hg2⟩
           have h1 := (ih (q+1) (by linarith) w1 g).mpr hg1
-          rw [step_n] at h1
+          rw [StepN] at h1
           rcases h1 with ⟨y,hy1,hy2⟩
           have h2 := (ih q (by linarith) y g).mp hy2
-          have h3 : step_n' relators (q+1) y w2 := by use g
+          have h3 : StepNSnoc relators (q+1) y w2 := by use g
           have h4 := (ih (q+1) (by linarith) y w2).mpr h3
           use y
 #check ConjStep.step_iff_conjugate
@@ -536,7 +536,7 @@ lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c
 
 
   -- have h1 : IsConj w (c*w*c⁻¹) := by simp
-  -- nth_rw 1 [← mk_toWord (x:=w), ← mk_toWord (x:=c*w*c⁻¹), conj_iff_cyc'] at h1
+  -- nth_rw 1 [← mk_toWord (x:=w), ← mk_toWord (x:=c*w*c⁻¹), isConj_iff_cycReduce_isRotated] at h1
   -- have h2 : (invRev c.toWord) = reduce (invRev c.toWord) := by
   --   symm
   --   rw [← IsRed.equiv_of_reds]
@@ -544,7 +544,7 @@ lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c
   -- simp [toWord_mul] at h1
   -- rw [h2,reduce_append_reduce_reduce] at h1
 
-  simp [CycPerm,list_to_free,CycPermList]
+  simp [CycPerm,listToFree,CycPermList]
   -- have h1 : (invRev c.toWord) = reduce (invRev c.toWord) := by
   --   symm
   --   rw [← IsRed.equiv_of_reds]
@@ -575,7 +575,7 @@ lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c
   -- rw [h1,reduce_append_reduce_reduce] at hl2
 
 
-  -- simp [CycPerm,list_to_free,CycPermList,toWord_mul]
+  -- simp [CycPerm,listToFree,CycPermList,toWord_mul]
   -- have h1 : (invRev c.toWord) = reduce (invRev c.toWord) := by
   --   symm
   --   rw [← IsRed.equiv_of_reds]
@@ -601,14 +601,14 @@ lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c
   --     sorry
   --   · exact IsRed.app_red_still_red l1 l4 l6 (IsRed.prefix_IsRed l1 l3 h13) (IsRed.prefix_IsRed l4 l6 h46) (IsRed.suffix_IsRed l4 l6 h46) (by rw [h45,← List.append_assoc] at h13;exact IsRed.prefix_IsRed (l1 ++ l4) l5 h13) h46 h4e
 
-lemma word_stepn_norm (w wn : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.step_n {x | x ∈ rlist} gn w wn) :
+lemma word_stepn_norm (w wn : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.StepN {x | x ∈ rlist} gn w wn) :
   norm (wn) ≤ norm w + (list_max_norm rlist)*gn := by
-  rw [ConjStep.step_n_eq_step_n'] at hw
+  rw [ConjStep.stepN_eq_stepNSnoc] at hw
   induction gn generalizing wn with
   | zero =>
-    simp [ConjStep.step_n'] at hw; simp [hw]
+    simp [ConjStep.StepNSnoc] at hw; simp [hw]
   | succ n ih =>
-    simp [ConjStep.step_n'] at hw
+    simp [ConjStep.StepNSnoc] at hw
     rcases hw with ⟨g,hgw,hgwn⟩
     have h1 := ih g hgw
     rw [ConjStep.step_iff_conjugate] at hgwn
@@ -625,14 +625,14 @@ lemma word_stepn_norm (w wn : FreeGroup α) (rlist : List (FreeGroup α)) (gn : 
       have h5 : (c * r⁻¹ * c⁻¹ * g).norm ≤ (c * r⁻¹ * c⁻¹).norm + w.norm + list_max_norm rlist * n := by linarith
       have h6 : (c * r⁻¹ * c⁻¹).norm ≤ r.norm := by
         have h1 : r⁻¹ ∈ ConjStep.CycPerm (c*r⁻¹*c⁻¹) := by
-          simp [ConjStep.CycPerm,ConjStep.list_to_free,ConjStep.CycPermList]
+          simp [ConjStep.CycPerm,ConjStep.listToFree,ConjStep.CycPermList]
           use (c⁻¹).toWord++c.toWord++r.toWord
 
 
       sorry
     · sorry
 
--- lemma word_stepn_conj_norm (w : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.step_n {x | x ∈ rlist} gn w wn)
+-- lemma word_stepn_conj_norm (w : FreeGroup α) (rlist : List (FreeGroup α)) (gn : ℕ) (hw : ConjStep.StepN {x | x ∈ rlist} gn w wn)
 
 -- rlist needs to be list of relators here
 theorem word_in_reqd_list_aux (rlist : List (FreeGroup α)) (n : ℕ) (dehn_bound : ℕ → ℕ) (w : FreeGroup α) (hw : IsProductOfNConjugates {R | R ∈ rlist} (dehn_bound n) w) :

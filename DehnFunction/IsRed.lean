@@ -463,31 +463,31 @@ end IsRed
 * `[]` is reduced
 * Singleton lists are reduced
 * `a::b::as` is reduced if `b::as` is reduced and `a ≠ b⁻¹`-/
-def IsRed_inductive (L : List (α × Bool)) : Prop :=
+def IsRedInductive (L : List (α × Bool)) : Prop :=
   match L with
   | [] => True
   | [_] => True
   | a::b::as =>
-    IsRed_inductive (b::as) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2)
+    IsRedInductive (b::as) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2)
 
 /--`IsRed` and its inductive version are equivalent-/
-theorem IsRed.iff_IsRed_inductive {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRed L ↔ IsRed_inductive L := by
+theorem IsRed.iff_IsRedInductive {α : Type*} [DecidableEq α] (L : List (α × Bool)) : IsRed L ↔ IsRedInductive L := by
   constructor
   · intro h
-    induction L using IsRed_inductive.induct with
-    | case1 => rw [IsRed_inductive]; tauto
-    | case2 _ => rw [IsRed_inductive]; tauto
+    induction L using IsRedInductive.induct with
+    | case1 => rw [IsRedInductive]; tauto
+    | case2 _ => rw [IsRedInductive]; tauto
     | case3 a b bs ih =>
-      rw [IsRed_inductive]
+      rw [IsRedInductive]
       have h1 : IsRed (b::bs) := tail _ h
       apply ih at h1
       exact ⟨h1,(cons _ (List.cons_ne_nil b bs) h).2⟩
   · intro h
-    induction L using IsRed_inductive.induct with
+    induction L using IsRedInductive.induct with
     | case1 => exact (equiv_of_reds []).mpr rfl
     | case2 b => exact singleton
     | case3 a b as ih =>
-      rw [IsRed_inductive] at h
+      rw [IsRedInductive] at h
       have h1 := ih h.1
       rcases h.2 with h2|h2
       · exact cons_if_not_red_pair as h1 h2
@@ -500,7 +500,7 @@ lemma List.concat_if_not_empty (l : List α) (hl : l ≠ []) : l = l.dropLast++[
   | append_singleton l a _ => simp
 
 /--The tail recursive version of `IsRed`:-/
-def IsRed_TR (L : List (α×Bool)) : Prop :=
+def IsRedTR (L : List (α×Bool)) : Prop :=
   List.reverseRecOn L
   (True)
   (fun as a iha =>
@@ -508,31 +508,31 @@ def IsRed_TR (L : List (α×Bool)) : Prop :=
     else if (a.1 ≠ (as.getLast has).1 ∨ a.2 = (as.getLast has).2) then iha
     else False)
 
-lemma IsRed_TR.nil {α : Type*} [DecidableEq α] : IsRed_TR ([] : List (α×Bool)) := by simp [IsRed_TR]
+lemma IsRedTR.nil {α : Type*} [DecidableEq α] : IsRedTR ([] : List (α×Bool)) := by simp [IsRedTR]
 
-lemma IsRed_TR.singleton {α : Type*} [DecidableEq α] {a : α×Bool} : IsRed_TR [a] := by
-  simp [IsRed_TR,List.reverseRecOn, List.reverseRec]
+lemma IsRedTR.singleton {α : Type*} [DecidableEq α] {a : α×Bool} : IsRedTR [a] := by
+  simp [IsRedTR,List.reverseRecOn, List.reverseRec]
 
-lemma IsRed_TR.concat_concat_iff : IsRed_TR (l++[b]) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) ↔ IsRed_TR (l ++ [b] ++ [a]) := by
+lemma IsRedTR.concat_concat_iff : IsRedTR (l++[b]) ∧ (a.1 ≠ b.1 ∨ a.2 = b.2) ↔ IsRedTR (l ++ [b] ++ [a]) := by
   constructor
   · intro h
-    rw [IsRed_TR,List.reverseRecOn_concat]
+    rw [IsRedTR,List.reverseRecOn_concat]
     have h1 : l ++ [b] ≠ [] := by simp
     rw [dif_neg h1,List.getLast_concat,if_pos h.2]
-    rw [← IsRed_TR]
+    rw [← IsRedTR]
     exact h.1
   · intro h
-    rw [IsRed_TR,List.reverseRecOn_concat] at h
+    rw [IsRedTR,List.reverseRecOn_concat] at h
     have h1 : l ++ [b] ≠ [] := by simp
     rw [dif_neg h1,List.getLast_concat] at h
     by_cases hab : (a.1 ≠ b.1 ∨ a.2 = b.2)
     · rw [if_pos hab] at h
-      rw [← IsRed_TR] at h
+      rw [← IsRedTR] at h
       exact ⟨h,hab⟩
     · rw [if_neg hab] at h
       contradiction
 
-lemma IsRed_TR.concat_if (hl1 : l ≠ []) (hl : IsRed_TR l) (ha : a.1 ≠ (l.getLast hl1).1 ∨ a.2 = (l.getLast hl1).2) : IsRed_TR (l++[a]) := by
+lemma IsRedTR.concat_if (hl1 : l ≠ []) (hl : IsRedTR l) (ha : a.1 ≠ (l.getLast hl1).1 ∨ a.2 = (l.getLast hl1).2) : IsRedTR (l++[a]) := by
   rw [List.concat_if_not_empty _ hl1] at hl ⊢
   exact (concat_concat_iff l.dropLast).mp ⟨hl,ha⟩
 
@@ -544,7 +544,7 @@ lemma three_iff_pair_red (c : α×Bool) (hab : IsRed [a,b]) (hbc : IsRed [b,c]) 
   exact (cons_cons_iff_not_red_pair [c]).mpr ⟨hbc, hab⟩
 
 lemma concat_if_end_not_red_pair (hl1 : IsRed (l1++[a])) (hab : a.1 ≠ b.1 ∨ a.2 = b.2) : IsRed (l1++[a]++[b]) := by
-  induction l1 using IsRed_inductive.induct with
+  induction l1 using IsRedInductive.induct with
   | case1 => simp; exact two_iff_not_red_pair.mpr hab
   | case2 x =>
     simp at hl1
@@ -574,15 +574,15 @@ lemma concat_iff_end_not_red_pair : IsRed (l1++[a]) ∧ (a.1 ≠ b.1 ∨ a.2 = b
       exact suffix_IsRed l1 [a, b] h
 
 lemma reverse_IsRed (hl : IsRed l) : IsRed l.reverse := by
-  induction l using IsRed_inductive.induct with
+  induction l using IsRedInductive.induct with
   | case1 => simp [nil]
   | case2 a => simp [singleton]
   | case3 a b as ih =>
     have h1 := ih (tail _ hl)
     rw [List.reverse_cons] at h1 ⊢
     rw [List.reverse_cons]
-    rw [iff_IsRed_inductive] at hl
-    rw [IsRed_inductive] at hl
+    rw [iff_IsRedInductive] at hl
+    rw [IsRedInductive] at hl
     apply concat_if_end_not_red_pair as.reverse h1
     convert hl.2 using 1
     aesop
@@ -593,20 +593,20 @@ lemma iff_reverse_IsRed : IsRed l ↔ IsRed l.reverse := by
   · intro h; exact reverse_IsRed l h
   · intro h; rw [← List.reverse_reverse l]; exact reverse_IsRed l.reverse h
 
-theorem iff_IsRed_TR (L : List (α × Bool)) : IsRed L ↔ IsRed_TR L := by
+theorem iff_IsRedTR (L : List (α × Bool)) : IsRed L ↔ IsRedTR L := by
   constructor
   · intro h
     induction L using List.reverseRecOn with
-  | nil => exact IsRed_TR.nil
+  | nil => exact IsRedTR.nil
   | append_singleton xs x ih =>
     by_cases hxs : xs = []
-    · simp [hxs]; exact IsRed_TR.singleton
+    · simp [hxs]; exact IsRedTR.singleton
     · have h1 := List.concat_if_not_empty xs hxs
       have h2 : IsRed xs := by exact prefix_IsRed xs [x] h
       rw [h1] at h
-      rw [iff_reverse_IsRed,iff_IsRed_inductive] at h
-      simp [IsRed_inductive] at h
-      refine IsRed_TR.concat_if xs hxs (ih h2) (h.2)
+      rw [iff_reverse_IsRed,iff_IsRedInductive] at h
+      simp [IsRedInductive] at h
+      refine IsRedTR.concat_if xs hxs (ih h2) (h.2)
   · intro h
     induction L using List.reverseRecOn with
   | nil => exact nil
@@ -614,11 +614,11 @@ theorem iff_IsRed_TR (L : List (α × Bool)) : IsRed L ↔ IsRed_TR L := by
     by_cases hxs : xs = []
     · simp [hxs]; exact singleton
     · have h1 := List.concat_if_not_empty xs hxs
-      rw [h1,← IsRed_TR.concat_concat_iff] at h
-      rw [h1,iff_reverse_IsRed,iff_IsRed_inductive]
-      simp [IsRed_inductive]
+      rw [h1,← IsRedTR.concat_concat_iff] at h
+      rw [h1,iff_reverse_IsRed,iff_IsRedInductive]
+      simp [IsRedInductive]
       constructor
-      · rw [← iff_IsRed_inductive]
+      · rw [← iff_IsRedInductive]
         rw [iff_reverse_IsRed]
         simp [← h1] at h ⊢
         exact ih h.1
@@ -647,7 +647,7 @@ theorem iff_IsRed_TR (L : List (α × Bool)) : IsRed L ↔ IsRed_TR L := by
 --   (l1.getLast h1ne).1 ≠ (l2.head h2ne).1 ∨ (l1.getLast h1ne).2 = (l2.head h2ne).2  → IsRed (l1 ++ l2) := by sorry
 
 theorem iff_mk_norm_eq_length : IsRed l ↔ (mk l).norm = l.length := by
-  induction l using IsRed_inductive.induct with
+  induction l using IsRedInductive.induct with
   | case1 => simp [nil]; rfl
   | case2 a => simp [singleton]; rfl
   | case3 a b as ih =>

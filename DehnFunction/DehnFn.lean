@@ -1,15 +1,15 @@
-import DehnFunction.Area_equiv
+import DehnFunction.AreaEquiv
 import Mathlib.Data.Real.Basic
 
 noncomputable def dehn {G: Type*} [DecidableEq G] (R : Set (FreeGroup G)) (n: ℕ ): ℕ :=
-  sSup (Area R '' {w | FreeGroup.norm w ≤ n})
+  sSup (area R '' {w | FreeGroup.norm w ≤ n})
 
 theorem dehn_of_zero {G: Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
   dehn R 0 = 0 := by
   unfold dehn
   simp_all only [nonpos_iff_eq_zero, FreeGroup.norm_eq_zero, Set.setOf_eq_eq_singleton, Set.image_singleton,
     csSup_singleton]
-  exact Area.one R
+  exact area.one_eq_zero R
 
 theorem dehn_free_grp_is_zero {G: Type*} [DecidableEq G](n: ℕ) :
   dehn (∅: Set (FreeGroup G)) n = 0 := by
@@ -17,8 +17,8 @@ theorem dehn_free_grp_is_zero {G: Type*} [DecidableEq G](n: ℕ) :
   by_cases h_non_empty: {w: FreeGroup G | FreeGroup.norm w ≤ n} = ∅
   . rw [h_non_empty]
     simp
-  . have h_empty : Area ∅ '' {w: FreeGroup G | FreeGroup.norm w ≤ n} = {0} := by
-      simp [Area.free_grp_eq_zero]
+  . have h_empty : area ∅ '' {w: FreeGroup G | FreeGroup.norm w ≤ n} = {0} := by
+      simp [area.free_grp_eq_zero]
       ext x
       simp
       constructor
@@ -80,7 +80,7 @@ theorem dehn_is_monotonic {G : Type*} [DecidableEq G] [Finite G] (R : Set (FreeG
   . apply Set.Finite.bddAbove
     apply Set.Finite.image
     apply fin_gen_words_finite
-  . apply Set.image_subset
+  . apply Set.image_mono
 
     intro w hw
 

@@ -4,6 +4,8 @@ import Mathlib.GroupTheory.FreeGroup.Reduce
 import Mathlib.Algebra.Group.Subgroup.Lattice
 import Mathlib.Algebra.Group.Subgroup.Finite
 import Mathlib.Tactic
+import DehnFunction.FiniteGroupIsPresented
+
 
 variable {G: Type*} (R : Set (FreeGroup G)) (n : ℕ) (w : FreeGroup G)
 
@@ -22,12 +24,12 @@ def IsProductOfNConjugates : Prop :=
   ∃ (l : List (FreeGroup G)),(∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) ∧
     l.length = n ∧ w = l.prod
 
---# Area Defintion 1
+--# area Defintion 1
 
-noncomputable def Area : ℕ :=
+noncomputable def area : ℕ :=
   sInf {n | IsProductOfNConjugates R n w}
 
-structure Area_struct where
+structure AreaStruct where
   n : ℕ
   isProd : IsProductOfNConjugates R n w
   isMin : ∀ m, m < n → ¬ IsProductOfNConjugates R m w
@@ -42,21 +44,21 @@ def b' : FreeGroup MyGen := FreeGroup.of b
 
 def rels : Set (FreeGroup MyGen) := {a' * b' * a'⁻¹ * b'⁻¹}
 
-def wrd : FreeGroup MyGen := a' * b' * a'⁻¹ * b'⁻¹
+def word : FreeGroup MyGen := a' * b' * a'⁻¹ * b'⁻¹
 
-lemma IsprodOfNConj_one : IsProductOfNConjugates rels 1 wrd := by
-  have h_w_conj : wrd ∈ Group.conjugatesOfSet rels := by
+lemma isProductOfNConjugates_one : IsProductOfNConjugates rels 1 word := by
+  have h_w_conj : word ∈ Group.conjugatesOfSet rels := by
     unfold Group.conjugatesOfSet
     unfold conjugatesOf
     unfold IsConj
     unfold SemiconjBy
     simp
-    use wrd
+    use word
     constructor
-    · exact Set.mem_singleton wrd
+    · exact Set.mem_singleton word
     . use 1
       simp
-  use [wrd]
+  use [word]
   constructor
   . intro c h_c_in
     rw [List.mem_singleton] at h_c_in
@@ -67,25 +69,25 @@ lemma IsprodOfNConj_one : IsProductOfNConjugates rels 1 wrd := by
     . simp
     . simp
 
-example : Area rels wrd = 1 := by
+example : area rels word = 1 := by
   apply Nat.le_antisymm
   . apply Nat.sInf_le
-    have h_prod : IsProductOfNConjugates rels 1 wrd := IsprodOfNConj_one
+    have h_prod : IsProductOfNConjugates rels 1 word := isProductOfNConjugates_one
     simp [h_prod]
-  . unfold Area
+  . unfold area
     refine Nat.one_le_iff_ne_zero.mpr ?_
     rintro h_area_0
     have h_inf_0 := Nat.sInf_eq_zero.mp h_area_0
-    have h_nonempty : {n | IsProductOfNConjugates rels n wrd}.Nonempty := by
+    have h_nonempty : {n | IsProductOfNConjugates rels n word}.Nonempty := by
       use 1
-      exact IsprodOfNConj_one
-    have h_0_in : 0 ∈ {n | IsProductOfNConjugates rels n wrd} := by aesop
-    have h_w_is_1 : wrd=1 :=by
-      have h_prod_of_0 : IsProductOfNConjugates rels 0 wrd := by aesop
+      exact isProductOfNConjugates_one
+    have h_0_in : 0 ∈ {n | IsProductOfNConjugates rels n word} := by aesop
+    have h_w_is_1 : word=1 :=by
+      have h_prod_of_0 : IsProductOfNConjugates rels 0 word := by aesop
       unfold IsProductOfNConjugates at h_prod_of_0
       aesop
-    have h_w_ne_1 : wrd ≠ 1 := by
-      rw [wrd]
+    have h_w_ne_1 : word ≠ 1 := by
+      rw [word]
       intro h_eq_1
       have h_norm_is_zero: FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) = 0 := by
         rw [h_eq_1]
@@ -96,21 +98,21 @@ example : Area rels wrd = 1 := by
       contradiction
     contradiction
 
-example: Area_struct rels wrd := {
+example: AreaStruct rels word := {
   n := 1,
-  isProd := IsprodOfNConj_one,
+  isProd := isProductOfNConjugates_one,
   isMin := by
     intros m h_gt0 h_lt
     have h_m_0 : m = 0 := by
       apply Nat.eq_zero_of_le_zero
       exact Nat.le_of_lt_succ h_gt0
     rw [h_m_0] at h_lt
-    have h_w_is_1 : wrd = 1 := by
-      have h_prod_of_0 : IsProductOfNConjugates rels 0 wrd := by aesop
+    have h_w_is_1 : word = 1 := by
+      have h_prod_of_0 : IsProductOfNConjugates rels 0 word := by aesop
       unfold IsProductOfNConjugates at h_prod_of_0
       aesop
-    have h_w_ne_1 : wrd ≠ 1 := by
-      rw [wrd]
+    have h_w_ne_1 : word ≠ 1 := by
+      rw [word]
       intro h_eq_1
       have h_norm_is_zero: FreeGroup.norm ( a' * b' * a'⁻¹ * b'⁻¹) = 0 := by
         rw [h_eq_1]
@@ -124,8 +126,8 @@ example: Area_struct rels wrd := {
 
 end MyGen
 
-theorem Area.one : Area R 1 = 0 := by
-  unfold Area
+theorem area.one_eq_zero : area R 1 = 0 := by
+  unfold area
   refine Nat.sInf_eq_zero.mpr ?_
   left
   unfold IsProductOfNConjugates
@@ -134,7 +136,7 @@ theorem Area.one : Area R 1 = 0 := by
 
 --# Important Theorems for normal closure
 
-section normalClosureThms
+section NormalClosureThms
 
 variable [Group G]
 
@@ -152,7 +154,7 @@ lemma Group.conjugatesOfSet_of_empty :
 
 namespace Subgroup
 
-theorem exists_list_of_mem_closure' {s : Set G} {x : G} :
+theorem exists_list_of_mem_closure_aux {s : Set G} {x : G} :
     x ∈ Subgroup.closure s ↔ ∃ l : List G, (∀ y ∈ l, y ∈ s ∨ y⁻¹ ∈ s) ∧ l.prod = x := by
   constructor
   . intro hx
@@ -205,7 +207,7 @@ theorem exists_list_of_mem_closure' {s : Set G} {x : G} :
 
 theorem mem_normalClosure_iff_prod_conj (R : Set G) (w: G): w∈ Subgroup.normalClosure R ↔ ∃ (l: List G), (∀ x ∈ l, x∈ Group.conjugatesOfSet R ∨ x⁻¹ ∈ Group.conjugatesOfSet R) ∧ w = l.prod := by
   rw[Subgroup.normalClosure]
-  rw[ exists_list_of_mem_closure']
+  rw[ exists_list_of_mem_closure_aux]
   apply Iff.intro
   · intro a
     obtain ⟨w_1, h⟩ := a
@@ -229,14 +231,14 @@ theorem mem_normalClosure_iff_prod_conj (R : Set G) (w: G): w∈ Subgroup.normal
       simp_all only
 
 end Subgroup
-end normalClosureThms
+end NormalClosureThms
 
-namespace Area
+namespace area
 
-theorem eq_zero_iff : Area R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R := by
+theorem eq_zero_iff : area R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R := by
   constructor
   . intro h_area_0
-    unfold Area at h_area_0
+    unfold area at h_area_0
     apply Nat.sInf_eq_zero.mp at h_area_0
     rcases h_area_0 with ⟨n, h_prod⟩
     case mp.inr k =>
@@ -260,11 +262,11 @@ theorem eq_zero_iff : Area R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R 
   . intro h
     cases h with
     | inl h_eq_1 =>
-      unfold Area
+      unfold area
       rw [h_eq_1]
-      exact one R
+      exact one_eq_zero R
     | inr h_not_in =>
-      unfold Area
+      unfold area
       refine Nat.sInf_eq_zero.mpr ?_
       right
       unfold IsProductOfNConjugates
@@ -277,7 +279,7 @@ theorem eq_zero_iff : Area R w = 0 ↔ w = 1 ∨ w ∉ Subgroup.normalClosure R 
       exact h_not_in h_in_closure
 
 theorem free_grp_eq_zero :
-  Area ∅ w = 0 := by
+  area ∅ w = 0 := by
   rw [eq_zero_iff]
   by_cases h_w_1 : w = 1
   . left
@@ -290,12 +292,178 @@ theorem free_grp_eq_zero :
     simp at h_in_closure
     contradiction
 
-end Area
+end area
 
-lemma PresentedGroup.IsProductOfNConjugates_one (hw : PresentedGroup.mk R w = 1) : ∃ n, IsProductOfNConjugates R n w := by
+lemma PresentedGroup.isProductOfNConjugates_one (hw : PresentedGroup.mk R w = 1) : ∃ n, IsProductOfNConjugates R n w := by
   rw [mk_eq_one_iff,Subgroup.mem_normalClosure_iff_prod_conj] at hw
   simp [IsProductOfNConjugates]
   obtain ⟨w_1, h⟩ := hw
   obtain ⟨left, right⟩ := h
   subst right
   use w_1
+
+#print area
+#check (Group.IsFinitelyPresented.finite_group_is_finitely_presented _).invFun
+#check ((Group.IsFinitelyPresented.finite_group_is_finitely_presented _)).invFun (1: (PresentedGroup (Group.IsFinitelyPresented.finite_group_relators _)))
+#print QuotientGroup.lift_mk
+
+lemma embed_into [Group G] [Finite G] (a: G) :   (FreeGroup.mk  [(a, true)]) = (FreeGroup.of a) := by aesop
+
+lemma embed_into_false [Group G] [Finite G] (a: G) :   (FreeGroup.mk  [(a, false)]) = FreeGroup.of a⁻¹ := by sorry
+
+#print map_one
+/- rw [PresentedGroup.mk_eq_one_iff]
+  apply Subgroup.subset_normalClosure
+  simp only [finite_group_relators, Set.mem_setOf_eq]
+  have h_rel := IsFiniteGroupRelator.mul (1: G) 1
+  rw [mul_one] at h_rel
+  simp at h_rel
+  exact h_rel
+-/
+
+--True Case
+lemma singleton_idword_is_id_true [Group G] [Finite G] (a: G)  (h: PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk  [(a, true)]) = 1) : a = 1:= by
+  let f:= Group.IsFinitelyPresented.finite_group_relators G
+  let e := Group.IsFinitelyPresented.finite_group_is_finitely_presented G
+  rw[←e.apply_eq_iff_eq]
+  unfold e
+  unfold Group.IsFinitelyPresented.finite_group_is_finitely_presented
+  simp[Group.IsFinitelyPresented.fromFiniteGroup]
+  simp[embed_into] at h
+  simp[PresentedGroup.of, h, Group.IsFinitelyPresented.presentedGroup_of_one]
+-- Bind your isomorphism to a readable name
+
+local notation "e" => Group.IsFinitelyPresented.finite_group_is_finitely_presented G
+
+-- The Bridge Lemma: Connect the raw generator map to the bundled inverse isomorphism
+lemma presented_of_eq_symm (g : G) [Group G] [Finite G] (a: G):
+  PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.of g) = ((Group.IsFinitelyPresented.finite_group_is_finitely_presented G) g) := by
+  unfold Group.IsFinitelyPresented.finite_group_is_finitely_presented
+  simp
+  unfold Group.IsFinitelyPresented.fromFiniteGroup
+  unfold PresentedGroup.of
+  rfl
+
+  -- You prove this once using the definition of how `e.symm` is constructed,
+  -- usually by `rfl` or `dsimp` depending on Mathlib's exact implementation.
+lemma invRev_singleton_false  [Group G] [Finite G] (a: G) : FreeGroup.invRev [(a, false)] = [(a, true)] := by
+ exact Eq.symm List.toList_toArray
+
+
+lemma mk_singleton_true_eq_of  [Group G] [Finite G] (a: G) : FreeGroup.mk [(a, true)] = FreeGroup.of a := by
+ exact embed_into a
+
+#print Subgroup.mem_normalClosure_iff_prod_conj
+#print Subgroup.subset_normalClosure
+#print PresentedGroup.mk_eq_mk_of_mul_inv_mem
+#print PresentedGroup.mk_eq_mk_of_inv_mul_mem
+#print Subgroup.normalClosure
+#print PresentedGroup.mk_eq_one_iff
+#print QuotientGroup.eq_iff_div_mem
+
+lemma fregrp [Group G] [Finite G] (a: G) : PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk [(a, false)]) = PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.of a⁻¹) := by
+/-
+a -> (a, true) -> inv -> (a, False) -> [(a, False)] -> [(a,False)] / ~_1 -> [(a,False)]/~_1 ->  [(a,False)]/~_1/~_2
+-/
+  group
+  unfold FreeGroup.of
+  have isInv:    (FreeGroup.mk [(a⁻¹, true)])*
+  (FreeGroup.mk [(a, true)]) ∈ Subgroup.normalClosure (Group.IsFinitelyPresented.finite_group_relators G)
+ := by
+    rw[embed_into, embed_into]
+    have rtemp (g: G): FreeGroup.of (g⁻¹ * g) = FreeGroup.of 1 := by
+     group
+    have ltemp: FreeGroup.of (1 * 1) = FreeGroup.of 1 := by
+     group
+    let rel₁ :=  ((FreeGroup.of a⁻¹) * (FreeGroup.of a)) * (FreeGroup.of 1)⁻¹
+    let rel₂ :=  ((FreeGroup.of (1: G)) * (FreeGroup.of 1)) * (FreeGroup.of 1)⁻¹
+    have expand:(FreeGroup.of a⁻¹) * (FreeGroup.of a)
+      = rel₁ * rel₂ := by
+          simp[rel₁, rel₂]
+    have rel₁_in: rel₁ ∈  (Group.IsFinitelyPresented.finite_group_relators G) := by
+      simp[rel₁, ←rtemp a]
+      simp only [Group.IsFinitelyPresented.finite_group_relators, Set.mem_setOf_eq]
+      have h_rel := Group.IsFinitelyPresented.IsFiniteGroupRelator.mul (a⁻¹ : G) (a : G)
+      exact h_rel
+    have rel₂_in: rel₂ ∈  (Group.IsFinitelyPresented.finite_group_relators G) := by
+      simp[rel₂]
+      simp only [Group.IsFinitelyPresented.finite_group_relators, Set.mem_setOf_eq]
+      have h_rel := Group.IsFinitelyPresented.IsFiniteGroupRelator.mul (1 : G) (1 : G)
+      simp at h_rel
+      exact h_rel
+    simp[expand]
+    have rel_1_in_1: rel₁ ∈  Subgroup.normalClosure (Group.IsFinitelyPresented.finite_group_relators G) := by
+      apply Subgroup.subset_normalClosure
+      exact rel₁_in
+    have rel_2_in_1: rel₂ ∈  Subgroup.normalClosure (Group.IsFinitelyPresented.finite_group_relators G) := by
+      apply Subgroup.subset_normalClosure
+      exact rel₂_in
+    let R :=  (Group.IsFinitelyPresented.finite_group_relators G)
+    apply (Subgroup.normalClosure R).mul_mem
+    simp[R, rel_1_in_1]
+    simp[R, rel_2_in_1]
+  apply eq_of_mul_inv_eq_one
+  rw [← map_inv, ← map_mul, PresentedGroup.mk_eq_one_iff]
+  have hmem := Subgroup.inv_mem (Subgroup.normalClosure (Group.IsFinitelyPresented.finite_group_relators G)) isInv
+  simpa [FreeGroup.invRev, zpow_neg_one] using hmem
+
+lemma singleton_idword_is_id_false [Group G] [Finite G] (a: G)  (h: PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk  [(a, false)]) = 1) : a = 1 := by
+  rw[←((Group.IsFinitelyPresented.finite_group_is_finitely_presented G)).apply_eq_iff_eq]
+  unfold Group.IsFinitelyPresented.finite_group_is_finitely_presented
+  simp[Group.IsFinitelyPresented.fromFiniteGroup]
+  simp[embed_into_false] at h
+  unfold PresentedGroup.of
+  have h_inv := congr_arg (Group.IsFinitelyPresented.toFiniteGroup G) h
+  unfold PresentedGroup.mk at h_inv
+  simp at h_inv
+  push_cast at h
+
+  have isone: ((Group.IsFinitelyPresented.finite_group_is_finitely_presented G)).invFun (1: (PresentedGroup (Group.IsFinitelyPresented.finite_group_relators G)))=  1 := by
+    simp
+  have hssd: ((Group.IsFinitelyPresented.finite_group_is_finitely_presented G)).invFun (PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk  [(a, false)])) = a⁻¹ := by
+
+    sorry
+  simp[h] at hssd
+  sorry
+
+lemma PresentedGroup.area_of_finite_bounded [Group G] (w: List (G × Bool)) (h: PresentedGroup.mk (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk  w) = 1 ) (h_n: w.length = n):
+area  (Group.IsFinitelyPresented.finite_group_relators G) (FreeGroup.mk w) <= n + 1  := by
+  induction n generalizing w with
+  | zero =>
+      have w_trivial: w = [] := by
+        aesop
+      have empty_is_identity: (FreeGroup.mk []) = (1 : FreeGroup G) := by
+        aesop
+      simp[empty_is_identity, w_trivial, area.one_eq_zero]
+  | succ n ih =>
+      cases n with
+      | zero =>
+        simp_all
+        have exists_elem: ∃ a, w = [(a, false)] ∨ w = [(a, true)] := by sorry
+        rcases exists_elem with ⟨ a, ha⟩
+        rcases ha with hal | har
+        · sorry
+        · sorry
+
+      | succ n => sorry
+
+ /- | nil =>
+    have g: (FreeGroup.mk []) = (1 : FreeGroup G) := by
+      aesop
+    simp[g, area.one_eq_zero]
+  | cons x xs ih =>
+     cases xs
+     · simp
+       sorry
+     · sorry
+
+  sorry
+-/
+
+ --∃ m,   (IsProductOfNConjugates (Group.IsFinitelyPresented.finite_group_relators G) (m) (FreeGroup.mk w)) ∧ (m ≤ w.length + 1) := by
+/-induction w with
+| nil =>
+   have w_is_one:(FreeGroup.mk w = 1) := by sorry
+   have, ∃m, (IsProductOfNConjugates (Group.IsFinitelyPresented.finite_group_relators G) (m) (FreeGroup.mk w)) ∧ (m ≤ w.length + 1) := by sorry
+| cons x xs ih => sorry
+-/

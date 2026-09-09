@@ -1,27 +1,27 @@
 import Mathlib.Algebra.Group.Subgroup.Ker
 import Mathlib.Data.Nat.Lattice
-import DehnFunction.Conj_cyc
+import DehnFunction.ConjCyc
 
 namespace FreeGroup
 namespace ConjStep
 def CycPermList {α : Type*} [DecidableEq α] : (relator : FreeGroup α) → List (List (α × Bool)):= fun relator => List.cyclicPermutations (FreeGroup.toWord relator)
 -- This function takes a freeword (if the underlying type for the freegroup is decidable) and gives us all its cyclic permutations as a list of lists.
 
-def list_to_free {γ : Type*} (l : List (List (γ × Bool))) : List (FreeGroup γ) := List.map FreeGroup.mk l
+def listToFree {γ : Type*} (l : List (List (γ × Bool))) : List (FreeGroup γ) := List.map FreeGroup.mk l
 -- Runs through the list of lists from CycPerm and gives us a list of FG elements.
 
-def CycPerm {α : Type*} [DecidableEq α] (w : FreeGroup α) := list_to_free (CycPermList w)
+def CycPerm {α : Type*} [DecidableEq α] (w : FreeGroup α) := listToFree (CycPermList w)
 
 
-def step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
+def Step {γ : Type*} [DecidableEq γ] (RelatorSet : Set (FreeGroup γ)) (w₁ w₂ : FreeGroup γ) : Prop :=
   ((CycRed (w₁ * w₂⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet) ∨ ((CycRed (w₂ * w₁⁻¹)) ∈ CyclicPermutationsOfRelators RelatorSet)
 
 
 
 theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (x y : FreeGroup G):
-    (step R x y) ↔
+    (Step R x y) ↔
   x*y⁻¹ ∈ Group.conjugatesOfSet R ∨ y*x⁻¹ ∈ Group.conjugatesOfSet R := by
-    unfold step
+    unfold Step
     apply or_congr
     . unfold CyclicPermutationsOfRelators
       unfold Group.conjugatesOfSet
@@ -71,17 +71,17 @@ theorem step_iff_conjugate {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} (
       rw[h_symm]
       apply conj_iff_cyc (y*x⁻¹) r
 
-def step_n {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
+def StepN {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (n : ℕ) (w1 w2 : FreeGroup α) : Prop :=
   match n with
   | 0 => w1 = w2
 
-  | n+1 => ∃ y, step relators w1 y ∧ step_n relators n y w2
+  | n+1 => ∃ y, Step relators w1 y ∧ StepN relators n y w2
 
 end ConjStep
 
-noncomputable def Area' {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
-  -- (step_n relators n w 1) ∧
-  sInf {n | ConjStep.step_n relators n w 1}
+noncomputable def areaSteps {α : Type*} [DecidableEq α] (relators : Set (FreeGroup α)) (w : FreeGroup α) : ℕ :=
+  -- (StepN relators n w 1) ∧
+  sInf {n | ConjStep.StepN relators n w 1}
 
 
 
@@ -90,19 +90,19 @@ namespace ConjStep
 lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))
 
     : ∀ (l : List (FreeGroup G)), (∀ c ∈ l, c ∈ Group.conjugatesOfSet R ∨ c⁻¹ ∈ Group.conjugatesOfSet R) →
-      step_n R l.length l.prod 1 := by
+      StepN R l.length l.prod 1 := by
 
   intro l
   induction l with
   | nil =>
 
     intro h_conj
-    simp [step_n]
+    simp [StepN]
 
   | cons x xs ih =>
     intros h_conj
     simp only [List.length_cons, List.prod_cons]
-    unfold step_n
+    unfold StepN
     match h_len_xs : xs.length with
     | 0 =>
       use 1
@@ -116,7 +116,7 @@ lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G
         simp
         exact h_x
       .
-        unfold step_n
+        unfold StepN
         simp
 
 
@@ -140,7 +140,7 @@ lemma prod_conj_implies_step_n {G : Type*} [DecidableEq G] (R : Set (FreeGroup G
 
 
 theorem empty_step {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) (w : FreeGroup G) :
-  {n | step_n R n w 1} = ∅ → w ∉ Subgroup.normalClosure R := by
+  {n | StepN R n w 1} = ∅ → w ∉ Subgroup.normalClosure R := by
   contrapose!
   intro h_mem
   rw[Subgroup.mem_normalClosure_iff_prod_conj] at h_mem
@@ -170,24 +170,24 @@ theorem isConjugate_of_prod {G : Type*} [DecidableEq G] {R : Set (FreeGroup G)} 
 
 
 lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set (FreeGroup G))(n : ℕ):
-    ∀ (w : FreeGroup G),(step_n R n w 1) →
+    ∀ (w : FreeGroup G),(StepN R n w 1) →
   IsProductOfNConjugates R n w := by
   induction n with
 
   | zero =>
     intros w h_step
-    simp [step_n] at h_step
+    simp [StepN] at h_step
     rw [h_step]
     use []
     simp
 
   | succ n ih =>
     intros w h_step
-    unfold step_n at h_step
+    unfold StepN at h_step
     cases n with
         | zero =>
             rcases h_step with ⟨y, h_step, h_y_1_path⟩
-            simp[step_n] at h_y_1_path
+            simp[StepN] at h_y_1_path
             rw[h_y_1_path] at h_step
             have h_conj: w ∈ Group.conjugatesOfSet R ∨ w⁻¹ ∈ Group.conjugatesOfSet R := by
               have h_w_id : w = w* 1⁻¹ := by
@@ -212,7 +212,7 @@ lemma step_n_implies_IsProductOfNConjugates {G : Type*} [DecidableEq G] (R : Set
 
 
 theorem step_empty {G : Type*} [DecidableEq G] (R : Set (FreeGroup G)) :
-  ∀ w, w ∉ Subgroup.normalClosure R  → {n | step_n R n w 1} = ∅ := by
+  ∀ w, w ∉ Subgroup.normalClosure R  → {n | StepN R n w 1} = ∅ := by
 
   intro w
   contrapose!
