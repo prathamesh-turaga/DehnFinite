@@ -12,25 +12,25 @@ lemma invRev_concat (a : α×Bool) : invRev (L++[a]) = (a.1,!a.2)::(invRev L) :=
 omit [DecidableEq α] in
 lemma invRev_singleton (a : α×Bool) : invRev [a] = [(a.1,!a.2)] := rfl
 
-def CycReduce : List (α × Bool) := Uncycle (FreeGroup.reduce L)
+def CycReduce : List (α × Bool) := reduceCyclically (FreeGroup.reduce L)
 -- Takes a list and returns cyclic reduction of that list's freely-reduced form.
 
-lemma Uncycle.isRed_IsRed : IsRed L → IsRed (Uncycle L) := by
+lemma reduceCyclically.isRed_IsRed : IsRed L → IsRed (reduceCyclically L) := by
   intro hypo
   unfold IsRed at hypo
   unfold IsRed
   by_contra
   expose_names; simp_all
   rcases this with ⟨L', h₁,h₂⟩;
-  apply Uncycle.property at L; rcases L with ⟨U,V,p₁,p₂⟩
+  apply reduceCyclically.property at L; rcases L with ⟨U,V,p₁,p₂⟩
   rw [<- FreeGroup.Red.append_append_left_iff U] at h₁
   have tempp : FreeGroup.Red V V := by exact FreeGroup.Red.refl
-  have this_one : FreeGroup.Red (U ++ Uncycle L ++ V) (U ++ L' ++ V) := by apply FreeGroup.Red.append_append h₁ tempp
+  have this_one : FreeGroup.Red (U ++ reduceCyclically L ++ V) (U ++ L' ++ V) := by apply FreeGroup.Red.append_append h₁ tempp
   rw [<-p₁] at this_one
   specialize hypo (U ++ L' ++ V)
   have this₁ : (U ++ L' ++ V) = L := by exact hypo this_one
-  have this₂ : (U ++ L' ++ V) = (U ++ (Uncycle L) ++ V) := by rw [p₁] at this₁; exact this₁
-  have this₃ : L' = Uncycle L := by
+  have this₂ : (U ++ L' ++ V) = (U ++ (reduceCyclically L) ++ V) := by rw [p₁] at this₁; exact this₁
+  have this₃ : L' = reduceCyclically L := by
     apply List.append_cancel_right at this₂
     apply List.append_cancel_left at this₂; exact this₂
   contradiction
@@ -42,7 +42,7 @@ lemma form_of_conj (g y : FreeGroup α): (g*y*g⁻¹).toWord = FreeGroup.reduce 
     rw [<-FreeGroup.reduce_invRev]
     rw [FreeGroup.reduce_append_reduce_reduce]
 
-def IsCycReduced (L : List (α × Bool)) : Prop := (IsRed L) ∧ (Uncycle L = L)
+def IsCycReduced (L : List (α × Bool)) : Prop := (IsRed L) ∧ (reduceCyclically L = L)
 
 namespace IsRed
 
@@ -383,8 +383,9 @@ lemma isCycReduced_cycPerm_IsCycReduced : IsCycReduced (P ++ Q) → IsCycReduced
       · rw [IsRed.two_iff_not_red_pair] at hPQ1 ⊢
         tauto
       · rw [isUncycled_iff] at hPQ2
-        simp [Uncycle,-not_and] at *
-        tauto
+        simp [reduceCyclically.pair,-not_and] at *
+        rintro ⟨h1, h2⟩
+        exact hPQ2 ⟨h1.symm, by rw [h2]; simp⟩
     | c::d::ds =>
     constructor
     · simp [IsUncycled] at hPQ2

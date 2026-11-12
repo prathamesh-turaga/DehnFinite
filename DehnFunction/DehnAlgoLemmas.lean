@@ -520,9 +520,9 @@ lemma ConjStep.stepN_eq_stepNSnoc (relators : Set (FreeGroup α)) (n : ℕ) (w1 
           have h4 := (ih (q+1) (by linarith) y w2).mpr h3
           use y
 #check ConjStep.step_iff_conjugate
--- #check Uncycle.isConj_to_self
+-- #check reduceCyclically.isConj_to_self
 lemma ConjStep.conj_cycperm_mem_self (w c : FreeGroup α) : w ∈ CycPerm (c*w*c⁻¹) := by
-  have h1 := Uncycle.property w.toWord
+  have h1 := reduceCyclically.property w.toWord
   rcases h1 with ⟨U,V,huv,huv1⟩
   have hv : V = invRev U := by
     rw [← mul_mk] at huv1
