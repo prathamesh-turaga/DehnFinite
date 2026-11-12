@@ -1,7 +1,7 @@
 /-
-Copyright (c) 2026 Arjun Sheth, Omar, Vivek Rajesh Joshi, T V H Prathamesh. All rights reserved.
+Copyright (c) 2026 Arjun Sheth, Omar, Vivek Rajesh Joshi, T V H Prathamesh, Rishi Vyas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Arjun Sheth, Omar, Vivek Rajesh Joshi, T V H Prathamesh
+Authors: Arjun Sheth, Omar, Vivek Rajesh Joshi, T V H Prathamesh, Rishi Vyas
 -/
 import Mathlib.Algebra.Group.Conj
 import Mathlib.Data.List.Rotate
