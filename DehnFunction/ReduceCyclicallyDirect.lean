@@ -83,9 +83,7 @@ protected theorem cons_append {a b : α × Bool} (L : List (α × Bool)) :
         (cancelPrefixLength (L ++ [b]) (L.reverse ++ [a]) + 1) = k + 1 := by
       rw [show (L.length + 2) / 2 = L.length / 2 + 1 by omega, Nat.add_min_add_right,
         min_cancelPrefixLength_append _ _ (by omega) (by simp; omega)]
-    have hkle : 2 * k ≤ L.length := by
-      have := min_le_left (L.length / 2) (cancelPrefixLength L L.reverse)
-      omega
+    have hkle : 2 * k ≤ L.length := by grind
     rw [hk', show L.length + 2 - 2 * (k + 1) = L.length - 2 * k by omega,
       drop_succ_cons, drop_append_of_le_length (by omega),
       take_append_of_le_length (by simp; omega)]

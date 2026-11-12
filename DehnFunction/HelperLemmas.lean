@@ -48,11 +48,11 @@ namespace IsRed
 
 omit [DecidableEq α] in
 lemma join_at_nonempty_left (hQ : IsRed Q) (h₁ : P = []) : IsRed (P ++ Q) := by
-  rw [h₁]; simp [List.nil_append]; exact hQ
+  grind only
 
 omit [DecidableEq α] in
 lemma join_at_nonempty_right (hP : IsRed P) (h₂ : Q = []) : IsRed (P ++ Q) := by
-  rw [h₂]; simp; exact hP
+  grind only
 
 lemma append_IsRed_IsRed_if (hP : IsRed P) (hQ : IsRed Q) (h₁ : P ≠ []) (h₂ : Q ≠ []) : (P.getLast h₁).1 ≠ (Q.head h₂).1 ∨ (P.getLast h₁).2 = (Q.head h₂).2  → IsRed (P ++ Q) := by
   induction P generalizing Q with
@@ -433,10 +433,4 @@ lemma isCycReduced_cycPerm_IsCycReduced : IsCycReduced (P ++ Q) → IsCycReduced
         tauto
 
 lemma List.append_nonempty (h : P ++ Q ≠ []) : (P ≠ []) ∨ (Q ≠ []) := by
-  apply Decidable.not_and_iff_or_not.mp ?_
-  by_contra
-  expose_names
-  have : P ++ Q = [] := by calc
-    P ++ Q = [] ++ [] := by rw [this.1, this.2]
-    _ = [] := by simp
-  contradiction
+  grind only

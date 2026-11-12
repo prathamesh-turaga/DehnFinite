@@ -16,8 +16,8 @@ decidable when `α` has decidable equality.
 
 ## Main results
 
-* `FreeGroup.isConj_iff_isRotated`: `g` and `h` are conjugate iff
-  `reduceCyclically g.toWord ~r reduceCyclically h.toWord`.
+* `FreeGroup.isConj_iff_isRotated`: `x` and `y` are conjugate iff
+  `reduceCyclically x.toWord ~r reduceCyclically y.toWord`.
 * `FreeGroup.isConj_mk_iff`: the same criterion for elements given by (not necessarily reduced)
   words.
 * `FreeGroup.instDecidableRelIsConj`: conjugacy in a free group is decidable.
@@ -39,6 +39,10 @@ theorem isConj_mk_of_isRotated (h : L₁ ~r L₂) : IsConj (mk L₁) (mk L₂) :
   rw [h₁, ← mul_mk]
   group
 
+theorem isReduced_concat_iff {a : α × Bool} :
+    IsReduced (L ++ [a]) ↔ IsReduced L ∧ ∀ b ∈ L.getLast?, b.1 = a.1 → b.2 = a.2 := by
+  simp [IsReduced, isChain_append]
+
 theorem isCyclicallyReduced_iff_isReduced_append_self :
     IsCyclicallyReduced L ↔ IsReduced (L ++ L) := by
   simp [isCyclicallyReduced_iff, IsReduced, isChain_append]
@@ -58,12 +62,22 @@ theorem IsCyclicallyReduced.rotate (h : IsCyclicallyReduced L) (n : ℕ) :
   rw [rotate_eq_drop_append_take_mod, isCyclicallyReduced_append_comm, take_append_drop]
   exact h
 
+theorem _root_.List.IsRotated.isCyclicallyReduced_iff (h : L₁ ~r L₂) :
+    IsCyclicallyReduced L₁ ↔ IsCyclicallyReduced L₂ := by
+  refine ⟨fun h₁ ↦ ?_, fun h₂ ↦ ?_⟩
+  · obtain ⟨n, rfl⟩ := h
+    exact h₁.rotate n
+  · obtain ⟨n, rfl⟩ := h.symm
+    exact h₂.rotate n
+
 theorem IsCyclicallyReduced.of_isRotated (h : IsCyclicallyReduced L₁) (hr : L₁ ~r L₂) :
-    IsCyclicallyReduced L₂ := by
-  obtain ⟨n, rfl⟩ := hr
-  exact h.rotate n
+    IsCyclicallyReduced L₂ :=
+  hr.isCyclicallyReduced_iff.1 h
 
 variable [DecidableEq α]
+
+theorem IsReduced.toWord_mk (h : IsReduced L) : (mk L).toWord = L := by
+  rw [FreeGroup.toWord_mk, h.reduce_eq]
 
 theorem IsCyclicallyReduced.reduceCyclically_eq (h : IsCyclicallyReduced L) :
     reduceCyclically L = L := by
@@ -96,153 +110,137 @@ theorem isConj_mk_reduceCyclically (L : List (α × Bool)) :
   conv_rhs => rw [← reduceCyclically.conj_conjugator_reduceCyclically L]
   rw [inv_mk, mul_mk, mul_mk]
 
-private theorem cancel_iff {x y : α × Bool} :
-    (x.1 = y.1 → x.2 = y.2) ↔ y ≠ (x.1, !x.2) := by
-  obtain ⟨x₁, x₂⟩ := x
-  obtain ⟨y₁, y₂⟩ := y
-  by_cases h : x₁ = y₁
-  · subst h; cases x₂ <;> cases y₂ <;> simp
-  · simp [h, Ne.symm h]
-
-private theorem cancel_iff' {x y : α × Bool} : (y.1 = x.1 → y.2 = !x.2) ↔ y ≠ x := by
-  obtain ⟨x₁, x₂⟩ := x
-  obtain ⟨y₁, y₂⟩ := y
-  by_cases h : y₁ = x₁
-  · subst h; cases x₂ <;> cases y₂ <;> simp
-  · simp [h]
+omit [DecidableEq α] in
+/-- The letter `a` does not cancel against `b` iff `b` is not the inverse letter of `a`. -/
+private theorem noncancel_iff_ne_inv {a b : α × Bool} :
+    (a.1 = b.1 → a.2 = b.2) ↔ b ≠ (a.1, !a.2) := by
+  obtain ⟨a₁, a₂⟩ := a
+  obtain ⟨b₁, b₂⟩ := b
+  cases a₂ <;> cases b₂ <;> grind only
 
 omit [DecidableEq α] in
-private theorem isReduced_concat {a : α × Bool} (hL : IsReduced L)
-    (h : ∀ b ∈ L.getLast?, b.1 = a.1 → b.2 = a.2) : IsReduced (L ++ [a]) := by
-  rw [IsReduced, isChain_append]
-  exact ⟨hL, isChain_singleton a, by simpa using h⟩
-
-private theorem toWord_mk_of_isReduced (h : IsReduced L) : (mk L).toWord = L := by
-  rw [toWord_mk, h.reduce_eq]
+/-- The letter `b` does not cancel against the inverse letter of `a` iff `b ≠ a`. -/
+private theorem noncancel_inv_iff_ne {a b : α × Bool} :
+    (b.1 = a.1 → b.2 = !a.2) ↔ b ≠ a := by
+  grind only
 
 /-- Conjugating by a single letter changes the cyclic reduction only up to rotation. -/
-theorem reduceCyclically_toWord_conj_mk_singleton (x : α × Bool) (g : FreeGroup α) :
-    reduceCyclically (mk [x] * g * (mk [x])⁻¹).toWord ~r reduceCyclically g.toWord := by
-  obtain ⟨u, hu, rfl⟩ : ∃ u, IsReduced u ∧ mk u = g :=
-    ⟨g.toWord, isReduced_toWord, mk_toWord⟩
-  rw [toWord_mk_of_isReduced hu]
-  set x' : α × Bool := (x.1, !x.2) with hx'
-  have hinv : (mk [x])⁻¹ = mk [x'] := by simp [inv_mk, invRev, hx']
+private theorem isRotated_reduceCyclically_toWord_conj_letter (a : α × Bool) (x : FreeGroup α) :
+    reduceCyclically (mk [a] * x * (mk [a])⁻¹).toWord ~r reduceCyclically x.toWord := by
+  obtain ⟨L, hL, rfl⟩ : ∃ L, IsReduced L ∧ mk L = x :=
+    ⟨x.toWord, isReduced_toWord, mk_toWord⟩
+  rw [hL.toWord_mk]
+  set a' : α × Bool := (a.1, !a.2) with ha'
+  have hinv : (mk [a])⁻¹ = mk [a'] := by simp [inv_mk, invRev, ha']
   rw [hinv]
-  have hcancel {y : α × Bool} : (x.1 = y.1 → x.2 = y.2) ↔ y ≠ x' := cancel_iff
-  have hcancel' {y : α × Bool} : (y.1 = x'.1 → y.2 = x'.2) ↔ y ≠ x := by
-    rw [hx']; exact cancel_iff' (x := x)
-  have hxx' : x ≠ x' := by simp [hx', Prod.ext_iff]
-  rcases u.eq_nil_or_concat' with rfl | ⟨v, last, rfl⟩
+  have hcancel_left {b : α × Bool} : (a.1 = b.1 → a.2 = b.2) ↔ b ≠ a' :=
+    noncancel_iff_ne_inv
+  have hcancel_right {b : α × Bool} : (b.1 = a'.1 → b.2 = a'.2) ↔ b ≠ a := by
+    rw [ha']; exact noncancel_inv_iff_ne (a := a)
+  rcases L.eq_nil_or_concat' with rfl | ⟨M, c, rfl⟩
   · rw [← hinv, show mk ([] : List (α × Bool)) = 1 from rfl, mul_one, mul_inv_cancel]
     simp
-  rcases v with _ | ⟨first, v⟩
-  · -- `u` is a single letter.
-    simp only [nil_append] at hu ⊢
-    by_cases hl : last = x'
-    · subst last
-      rw [show mk [x] * mk [x'] * mk [x'] = mk [x'] by rw [← hinv]; group]
+  rcases M with _ | ⟨b, M⟩
+  · -- The word is a single letter `c`.
+    simp only [nil_append] at hL ⊢
+    by_cases hc : c = a'
+    · subst c
+      rw [show mk [a] * mk [a'] * mk [a'] = mk [a'] by rw [← hinv]; group]
       simp
-    by_cases hl' : last = x
-    · subst last
-      rw [show mk [x] * mk [x] * mk [x'] = mk [x] by rw [← hinv]; group]
+    by_cases hc' : c = a
+    · subst c
+      rw [show mk [a] * mk [a] * mk [a'] = mk [a] by rw [← hinv]; group]
       simp
-    have hW : IsReduced [x, last, x'] := by
+    have hred : IsReduced [a, c, a'] := by
       simp only [isReduced_cons_cons, IsReduced.singleton, and_true]
-      exact ⟨hcancel.2 hl, hcancel'.2 hl'⟩
-    rw [mul_mk, mul_mk, toWord_mk_of_isReduced (by simpa using hW)]
-    rw [show [x] ++ [last] ++ [x'] = x :: ([last] ++ [x']) by rfl, reduceCyclically.cons_append,
-      if_pos (by simp [hx'])]
-  · -- `u = first :: v ++ [last]` has at least two letters.
-    have hred : IsReduced (first :: v) := hu.infix ⟨[], [last], by simp⟩
-    have hred' : IsReduced (v ++ [last]) := hu.infix ⟨[first], [], by simp⟩
-    by_cases hf : first = x'
-    · subst first
-      by_cases hl : last = x
-      · -- Both ends cancel: the result is the middle `v`.
-        subst last
-        have hv : IsReduced v := hu.infix ⟨[x'], [x], by simp⟩
-        rw [show mk [x] * mk (x' :: v ++ [x]) * mk [x'] = mk v by
-          rw [show x' :: v ++ [x] = [x'] ++ v ++ [x] by rfl, ← mul_mk, ← mul_mk, ← hinv]
+      exact ⟨hcancel_left.2 hc, hcancel_right.2 hc'⟩
+    rw [mul_mk, mul_mk, IsReduced.toWord_mk (by simpa using hred)]
+    rw [show [a] ++ [c] ++ [a'] = a :: ([c] ++ [a']) by rfl, reduceCyclically.cons_append,
+      if_pos (by simp [ha'])]
+  · -- The word `b :: M ++ [c]` has at least two letters.
+    by_cases hb : b = a'
+    · subst b
+      by_cases hc : c = a
+      · -- Both ends cancel: the result is the middle `M`.
+        subst c
+        have hM : IsReduced M := hL.infix ⟨[a'], [a], by simp⟩
+        rw [show mk [a] * mk (a' :: M ++ [a]) * mk [a'] = mk M by
+          rw [show a' :: M ++ [a] = [a'] ++ M ++ [a] by rfl, ← mul_mk, ← mul_mk, ← hinv]
           group]
-        rw [toWord_mk_of_isReduced hv, cons_append, reduceCyclically.cons_append,
-          if_pos (by simp [hx'])]
-      · -- Only the first letter cancels: the result is a rotation of `u`.
-        have hcyc : IsCyclicallyReduced (x' :: v ++ [last]) := by
+        rw [hM.toWord_mk, cons_append, reduceCyclically.cons_append, if_pos (by simp [ha'])]
+      · -- Only the first letter cancels: the result is a rotation of the word.
+        have hcyc : IsCyclicallyReduced (a' :: M ++ [c]) := by
           rw [cons_append, ← cons_append, isCyclicallyReduced_cons_append_iff]
-          exact ⟨hu, hcancel'.2 hl⟩
-        have hrot : x' :: v ++ [last] ~r v ++ [last] ++ [x'] := by
+          exact ⟨hL, hcancel_right.2 hc⟩
+        have hrot : a' :: M ++ [c] ~r M ++ [c] ++ [a'] := by
           rw [cons_append]; exact (isRotated_concat _ _).symm
-        rw [show mk [x] * mk (x' :: v ++ [last]) * mk [x'] = mk (v ++ [last] ++ [x']) by
-          rw [show x' :: v ++ [last] = [x'] ++ (v ++ [last]) by rfl, ← mul_mk, ← mul_mk,
+        rw [show mk [a] * mk (a' :: M ++ [c]) * mk [a'] = mk (M ++ [c] ++ [a']) by
+          rw [show a' :: M ++ [c] = [a'] ++ (M ++ [c]) by rfl, ← mul_mk, ← mul_mk,
             ← mul_mk, ← hinv]; simp only [← mul_mk]; group]
-        rw [toWord_mk_of_isReduced (hcyc.of_isRotated hrot).isReduced,
+        rw [(hcyc.of_isRotated hrot).isReduced.toWord_mk,
           (hcyc.of_isRotated hrot).reduceCyclically_eq, hcyc.reduceCyclically_eq]
         exact hrot.symm
-    · by_cases hl : last = x
-      · -- Only the last letter cancels: the result is a rotation of `u`.
-        subst last
-        have hcyc : IsCyclicallyReduced (first :: v ++ [x]) := by
+    · by_cases hc : c = a
+      · -- Only the last letter cancels: the result is a rotation of the word.
+        subst c
+        have hcyc : IsCyclicallyReduced (b :: M ++ [a]) := by
           rw [cons_append, ← cons_append, isCyclicallyReduced_cons_append_iff]
-          refine ⟨hu, fun h₁ ↦ ?_⟩
-          exact (hcancel (y := first)).2 hf h₁
-        have hrot : first :: v ++ [x] ~r x :: first :: v := isRotated_concat _ _
-        rw [show mk [x] * mk (first :: v ++ [x]) * mk [x'] = mk (x :: first :: v) by
-          rw [show x :: first :: v = [x] ++ (first :: v) by rfl, ← mul_mk, ← mul_mk,
-            ← hinv]; group]
-        rw [toWord_mk_of_isReduced (hcyc.of_isRotated hrot).isReduced,
+          exact ⟨hL, fun h₁ ↦ (hcancel_left (b := b)).2 hb h₁⟩
+        have hrot : b :: M ++ [a] ~r a :: b :: M := isRotated_concat _ _
+        rw [show mk [a] * mk (b :: M ++ [a]) * mk [a'] = mk (a :: b :: M) by
+          rw [show a :: b :: M = [a] ++ (b :: M) by rfl, ← mul_mk, ← mul_mk, ← hinv]; group]
+        rw [(hcyc.of_isRotated hrot).isReduced.toWord_mk,
           (hcyc.of_isRotated hrot).reduceCyclically_eq, hcyc.reduceCyclically_eq]
         exact hrot.symm
       · -- Nothing cancels: conjugating adds a cancelling outer pair.
-        have hW : IsReduced (x :: (first :: v ++ [last] ++ [x'])) := by
-          have h₁ : IsReduced (x :: (first :: v ++ [last])) := by
+        have hred : IsReduced (a :: (b :: M ++ [c] ++ [a'])) := by
+          have h₁ : IsReduced (a :: (b :: M ++ [c])) := by
             rw [cons_append, isReduced_cons_cons]
-            exact ⟨hcancel.2 hf, hu⟩
-          have h₂ : IsReduced (first :: v ++ [last] ++ [x']) :=
-            isReduced_concat hu (by
-              intro b hb
-              rw [show (first :: v ++ [last]).getLast? = some last by
-                exact getLast?_concat ..] at hb
-              simp only [Option.mem_def, Option.some.injEq] at hb
-              subst hb
-              exact hcancel'.2 hl)
-          exact IsReduced.append_overlap (L₁ := [x]) h₁ h₂ (by simp)
-        rw [mul_mk, mul_mk, show [x] ++ (first :: v ++ [last]) ++ [x'] =
-          x :: (first :: v ++ [last] ++ [x']) by rfl, toWord_mk_of_isReduced hW,
-          reduceCyclically.cons_append, if_pos (by simp [hx'])]
+            exact ⟨hcancel_left.2 hb, hL⟩
+          have h₂ : IsReduced (b :: M ++ [c] ++ [a']) := by
+            refine isReduced_concat_iff.2 ⟨hL, fun d hd ↦ ?_⟩
+            rw [show (b :: M ++ [c]).getLast? = some c from getLast?_concat ..] at hd
+            simp only [Option.mem_def, Option.some.injEq] at hd
+            subst hd
+            exact hcancel_right.2 hc
+          exact IsReduced.append_overlap (L₁ := [a]) h₁ h₂ (by simp)
+        rw [mul_mk, mul_mk, show [a] ++ (b :: M ++ [c]) ++ [a'] =
+          a :: (b :: M ++ [c] ++ [a']) by rfl, hred.toWord_mk,
+          reduceCyclically.cons_append, if_pos (by simp [ha'])]
 
 /-- Conjugation changes the cyclic reduction of the reduced word only up to rotation. -/
-theorem reduceCyclically_toWord_conj (c g : FreeGroup α) :
-    reduceCyclically (c * g * c⁻¹).toWord ~r reduceCyclically g.toWord := by
-  obtain ⟨w, rfl⟩ : ∃ w, mk w = c := ⟨c.toWord, mk_toWord⟩
-  induction w with
+theorem isRotated_reduceCyclically_toWord_conj {c x : FreeGroup α} :
+    reduceCyclically (c * x * c⁻¹).toWord ~r reduceCyclically x.toWord := by
+  obtain ⟨L, rfl⟩ : ∃ L, mk L = c := ⟨c.toWord, mk_toWord⟩
+  induction L with
   | nil => simpa [show mk ([] : List (α × Bool)) = 1 from rfl] using IsRotated.refl _
-  | cons x w ih =>
-    have : mk (x :: w) * g * (mk (x :: w))⁻¹ =
-        mk [x] * (mk w * g * (mk w)⁻¹) * (mk [x])⁻¹ := by
-      rw [show x :: w = [x] ++ w by rfl, ← mul_mk]
+  | cons a L ih =>
+    have : mk (a :: L) * x * (mk (a :: L))⁻¹ =
+        mk [a] * (mk L * x * (mk L)⁻¹) * (mk [a])⁻¹ := by
+      rw [show a :: L = [a] ++ L by rfl, ← mul_mk]
       group
     rw [this]
-    exact (reduceCyclically_toWord_conj_mk_singleton x _).trans ih
+    exact (isRotated_reduceCyclically_toWord_conj_letter a _).trans ih
 
 /-- **Conjugacy criterion for free groups**: two elements are conjugate iff the cyclic reductions
 of their reduced words are cyclic permutations of each other. -/
-theorem isConj_iff_isRotated {g h : FreeGroup α} :
-    IsConj g h ↔ reduceCyclically g.toWord ~r reduceCyclically h.toWord := by
-  refine ⟨fun hc ↦ ?_, fun hr ↦ ?_⟩
-  · obtain ⟨c, rfl⟩ := isConj_iff.1 hc
-    exact (reduceCyclically_toWord_conj c g).symm
-  · have hg := isConj_mk_reduceCyclically g.toWord
-    have hh := isConj_mk_reduceCyclically h.toWord
-    rw [mk_toWord] at hg hh
-    exact (hg.symm.trans (isConj_mk_of_isRotated hr)).trans hh
+theorem isConj_iff_isRotated {x y : FreeGroup α} :
+    IsConj x y ↔ reduceCyclically x.toWord ~r reduceCyclically y.toWord := by
+  refine ⟨fun h ↦ ?_, fun hr ↦ ?_⟩
+  · obtain ⟨c, rfl⟩ := isConj_iff.1 h
+    exact isRotated_reduceCyclically_toWord_conj.symm
+  · have hx := isConj_mk_reduceCyclically x.toWord
+    have hy := isConj_mk_reduceCyclically y.toWord
+    rw [mk_toWord] at hx hy
+    exact (hx.symm.trans (isConj_mk_of_isRotated hr)).trans hy
 
 /-- The conjugacy criterion for elements given by (not necessarily reduced) words. -/
 theorem isConj_mk_iff :
     IsConj (mk L₁) (mk L₂) ↔
       reduceCyclically (reduce L₁) ~r reduceCyclically (reduce L₂) := by
-  simp only [isConj_iff_isRotated, toWord_mk]
+  simp only [isConj_iff_isRotated, FreeGroup.toWord_mk]
 
+/-- Conjugacy in a free group is decidable, via `FreeGroup.isConj_iff_isRotated`. -/
 instance instDecidableRelIsConj : DecidableRel (IsConj : FreeGroup α → FreeGroup α → Prop) :=
   fun _ _ ↦ decidable_of_iff _ isConj_iff_isRotated.symm
 
