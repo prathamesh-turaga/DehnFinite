@@ -5,3 +5,5 @@ import DehnFunction.HelperLemmas
 import DehnFunction.ConjCyc
 import DehnFunction.Area2
 import DehnFunction.AreaEquiv
+import DehnFunction.FreeGroupConj
+import DehnFunction.ReduceCyclicallyDirect
